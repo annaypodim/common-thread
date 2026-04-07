@@ -24,63 +24,6 @@ function CheckIcon({ delay }: { delay: string }) {
   );
 }
 
-function FeatureCard({
-  title,
-  description,
-  icon,
-  delay,
-}: {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  delay: string;
-}) {
-  return (
-    <div
-      className="feature-card bg-periwinkle rounded-2xl p-8 animate-fade-up cursor-default"
-      style={{ animationDelay: delay }}
-    >
-      <div className="mb-4 text-forest-muted">{icon}</div>
-      <h3 className="text-xl font-semibold tracking-tight text-foreground mb-2">
-        {title}
-      </h3>
-      <p className="text-base leading-relaxed text-text-secondary">{description}</p>
-    </div>
-  );
-}
-
-function PreviewCard({
-  label,
-  items,
-  delay,
-}: {
-  label: string;
-  items: string[];
-  delay: string;
-}) {
-  return (
-    <div
-      className="preview-card bg-periwinkle rounded-2xl p-8 min-h-[320px] flex flex-col justify-between animate-fade-up"
-      style={{ animationDelay: delay }}
-    >
-      <div className="space-y-3">
-        {items.map((item, i) => (
-          <div
-            key={i}
-            className="bg-white/50 rounded-lg px-4 py-3 text-base text-text-secondary"
-          >
-            {item}
-          </div>
-        ))}
-      </div>
-      <div className="mt-6 pt-4 border-t border-white/30">
-        <span className="text-lg font-semibold tracking-tight text-foreground">
-          {label}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 function SchoolLogo({ name }: { name: string }) {
   return (
@@ -129,174 +72,194 @@ export default function Home() {
         </Link>
       </nav>
 
-      {/* Hero */}
-      <section className="w-full max-w-5xl mx-auto px-6 sm:px-10 pt-16 sm:pt-24 pb-20">
-        <div className="text-center">
-          <h1 className="font-serif text-5xl sm:text-6xl md:text-7xl lg:text-8xl leading-[1.1] tracking-tight text-foreground animate-fade-up">
-            <span className="block" style={{ animationDelay: "0.1s" }}>
-              Application: Submitted
-              <CheckIcon delay="0.6s" />
-            </span>
-            <span
-              className="block mt-1 animate-fade-up"
-              style={{ animationDelay: "0.2s" }}
+      {/* Hero — asymmetric layout */}
+      <section className="w-full px-4 sm:px-6 pt-12 sm:pt-20 pb-12">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          {/* Left — text */}
+          <div className="animate-fade-up">
+            <h1 className="font-serif text-5xl sm:text-6xl md:text-7xl leading-[1.08] tracking-tight text-foreground">
+              <span className="block">
+                Application: Submitted
+                <CheckIcon delay="0.6s" />
+              </span>
+              <span className="block mt-1">
+                Counseling: Free
+                <CheckIcon delay="0.8s" />
+              </span>
+              <span className="block mt-1">
+                Written by: You
+                <CheckIcon delay="1.0s" />
+              </span>
+            </h1>
+
+            <p
+              className="mt-6 max-w-lg text-lg leading-relaxed text-text-secondary animate-fade-up"
+              style={{ animationDelay: "0.4s" }}
             >
-              Counseling: Free
-              <CheckIcon delay="0.8s" />
-            </span>
-            <span
-              className="block mt-1 animate-fade-up"
-              style={{ animationDelay: "0.3s" }}
-            >
-              Written by: You, always
-              <CheckIcon delay="1.0s" />
-            </span>
-          </h1>
+              The application strategy platform that helps you find your narrative
+              and organize everything in one place.
+              Built by students who&apos;ve been through it.
+            </p>
 
-          <p
-            className="mt-8 max-w-xl mx-auto text-lg sm:text-xl leading-relaxed text-text-secondary animate-fade-up"
-            style={{ animationDelay: "0.5s" }}
-          >
-            The application strategy platform that helps you find your narrative
-            and organize everything in one place.
-            Built by students who&apos;ve been through it.
-          </p>
-
-          <div
-            className="mt-8 flex justify-center gap-4 animate-fade-up"
-            style={{ animationDelay: "0.6s" }}
-          >
-            <Link
-              href="/dashboard"
-              className="rounded-full bg-forest text-white px-8 py-3 text-base font-medium hover:bg-forest-light transition-colors"
-            >
-              Get started for free
-            </Link>
-          </div>
-        </div>
-
-        {/* Feature cards */}
-        <div className="mt-20 grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-3xl mx-auto">
-          <FeatureCard
-            title="Narrative Planner"
-            description="Map your activities, awards, and interests into a cohesive application story. See what narrative threads tie your experiences together."
-            icon={
-              <svg width="32" height="32" viewBox="0 0 28 28" fill="none">
-                <path d="M4 8h20M4 14h14M4 20h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                <circle cx="22" cy="18" r="4" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                <path d="M22 16v4M20 18h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-              </svg>
-            }
-            delay="0.7s"
-          />
-          <FeatureCard
-            title="College Organizer"
-            description="Track deadlines, essay prompts, drafts, and research for every school on your list. One workspace, zero chaos."
-            icon={
-              <svg width="32" height="32" viewBox="0 0 28 28" fill="none">
-                <rect x="3" y="4" width="22" height="20" rx="3" stroke="currentColor" strokeWidth="1.8" fill="none" />
-                <path d="M3 10h22M10 10v14" stroke="currentColor" strokeWidth="1.5" />
-                <circle cx="6.5" cy="7" r="1" fill="currentColor" opacity="0.3" />
-                <circle cx="9.5" cy="7" r="1" fill="currentColor" opacity="0.3" />
-              </svg>
-            }
-            delay="0.8s"
-          />
-        </div>
-      </section>
-
-      {/* Differentiator */}
-      <section className="w-full bg-ivory">
-        <div className="max-w-5xl mx-auto px-6 sm:px-10 py-20 sm:py-28">
-          <h2
-            className="font-serif text-3xl sm:text-4xl md:text-5xl tracking-tight text-foreground text-center animate-fade-up"
-          >
-            What makes common thread different
-          </h2>
-
-          <div className="mt-14 max-w-2xl mx-auto space-y-10">
-            {/* Founders */}
-            <div className="animate-fade-up" style={{ animationDelay: "0.15s" }}>
-              <p className="text-base font-medium text-text-tertiary uppercase tracking-widest mb-3">
-                Built by students admitted to
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <SchoolLogo name="UC Berkeley" />
-                <SchoolLogo name="COSMOS" />
-              </div>
-            </div>
-
-            {/* Tools */}
-            <div className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
-              <p className="text-base font-medium text-text-tertiary uppercase tracking-widest mb-3">
-                Inspired by the tools you already love
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <ToolLogo name="Notion" />
-                <ToolLogo name="Google Docs" />
-                <ToolLogo name="Grammarly" />
-                <ToolLogo name="Common App" />
-              </div>
-            </div>
-
-            {/* Value props */}
             <div
-              className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 animate-fade-up"
-              style={{ animationDelay: "0.35s" }}
+              className="mt-6 flex gap-3 animate-fade-up"
+              style={{ animationDelay: "0.5s" }}
             >
-              <div className="text-center sm:text-left">
-                <p className="text-3xl font-serif text-foreground">0%</p>
-                <p className="text-sm text-text-tertiary mt-1">AI-written content</p>
+              <Link
+                href="/dashboard"
+                className="rounded-full bg-forest text-white px-8 py-3 text-base font-medium hover:bg-forest-light transition-colors"
+              >
+                Get started for free
+              </Link>
+            </div>
+          </div>
+
+          {/* Right — mini product preview */}
+          <div
+            className="animate-fade-up hidden lg:block"
+            style={{ animationDelay: "0.3s" }}
+          >
+            <div className="bg-periwinkle rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-3 h-3 rounded-full bg-white/40" />
+                <span className="w-3 h-3 rounded-full bg-white/40" />
+                <span className="w-3 h-3 rounded-full bg-white/40" />
+                <span className="ml-auto text-xs font-medium text-forest-muted">Angle Analyzer</span>
               </div>
-              <div className="text-center sm:text-left">
-                <p className="text-3xl font-serif text-foreground">100%</p>
-                <p className="text-sm text-text-tertiary mt-1">your voice, preserved</p>
+              <div className="space-y-2">
+                <div className="bg-white/60 rounded-lg px-4 py-3 text-sm text-text-secondary">
+                  <span className="text-xs font-semibold text-forest">Theme:</span> Environmental data + civic impact
+                </div>
+                <div className="bg-white/60 rounded-lg px-4 py-3 text-sm text-text-secondary">
+                  <span className="text-xs font-semibold text-forest">Evidence:</span> Air quality research, Climate blog
+                </div>
+                <div className="bg-white/60 rounded-lg px-4 py-3 text-sm text-text-secondary">
+                  <span className="text-xs font-semibold text-forest">Angle:</span> Data-driven environmental storytelling
+                </div>
               </div>
-              <div className="text-center sm:text-left">
-                <p className="text-3xl font-serif text-foreground">1</p>
-                <p className="text-sm text-text-tertiary mt-1">place for everything</p>
+              <div className="mt-3 flex items-center gap-2 text-xs text-forest-muted">
+                <CheckIcon delay="1.2s" />
+                <span>Strong narrative coherence detected</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Product Preview */}
-      <section className="w-full max-w-5xl mx-auto px-6 sm:px-10 py-20 sm:py-28">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-3xl mx-auto">
-          <PreviewCard
-            label="Dashboard"
-            items={[
-              "College list with deadlines",
-              "Essay drafts & revisions",
-              "Interview prep notes",
-              "Pros & cons for each school",
-            ]}
-            delay="0.1s"
-          />
-          <PreviewCard
-            label="Analyzer"
-            items={[
-              "Enter your activities & awards",
-              "Identify narrative themes",
-              "See supporting evidence",
-              "Get essay angle suggestions",
-            ]}
-            delay="0.2s"
-          />
+      {/* Trusted by / Differentiator — full-width logo bar */}
+      <section className="w-full border-y border-border-soft py-6 animate-fade-up">
+        <div className="flex items-center justify-center gap-6 sm:gap-10 flex-wrap px-6">
+          <span className="text-sm font-semibold text-foreground whitespace-nowrap">Built by students admitted to</span>
+          <SchoolLogo name="UC Berkeley" />
+          <SchoolLogo name="COSMOS" />
+          <span className="hidden sm:block w-px h-5 bg-border-soft" />
+          <span className="text-sm font-semibold text-foreground whitespace-nowrap">Inspired by</span>
+          <ToolLogo name="Notion" />
+          <ToolLogo name="Google Docs" />
+          <ToolLogo name="Grammarly" />
+        </div>
+      </section>
+
+      {/* Product showcase — full-bleed cards like Notion */}
+      <section className="w-full px-4 sm:px-6 py-12 sm:py-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-7xl mx-auto">
+          {/* Dashboard card — wide, interactive-feeling */}
+          <Link href="/dashboard" className="group">
+            <div className="feature-card bg-periwinkle rounded-2xl p-6 sm:p-8 h-full">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-forest/10 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
+                      <rect x="3" y="4" width="22" height="20" rx="3" stroke="#1B3A2D" strokeWidth="2" fill="none" />
+                      <path d="M3 10h22M10 10v14" stroke="#1B3A2D" strokeWidth="1.5" />
+                    </svg>
+                  </span>
+                  <span className="text-sm font-medium text-forest-muted">Dashboard</span>
+                </div>
+                <span className="text-text-tertiary group-hover:translate-x-1 transition-transform">&rarr;</span>
+              </div>
+              <h3 className="font-serif text-2xl sm:text-3xl tracking-tight text-foreground mb-3">
+                Your entire application,<br />organized.
+              </h3>
+              <div className="space-y-2 mt-4">
+                <div className="bg-white/50 rounded-lg px-4 py-2.5 text-sm text-text-secondary flex items-center justify-between">
+                  <span>Stanford — Early Action</span>
+                  <span className="text-xs text-text-tertiary">Nov 1</span>
+                </div>
+                <div className="bg-white/50 rounded-lg px-4 py-2.5 text-sm text-text-secondary flex items-center justify-between">
+                  <span>MIT — Regular Decision</span>
+                  <span className="text-xs text-text-tertiary">Jan 5</span>
+                </div>
+                <div className="bg-white/50 rounded-lg px-4 py-2.5 text-sm text-text-secondary flex items-center justify-between">
+                  <span>UC Berkeley — Essay Draft 2</span>
+                  <span className="text-xs text-forest-muted font-medium">In progress</span>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          {/* Analyzer card */}
+          <Link href="/analyzer" className="group">
+            <div className="feature-card bg-periwinkle rounded-2xl p-6 sm:p-8 h-full">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-forest/10 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
+                      <path d="M4 8h20M4 14h14M4 20h8" stroke="#1B3A2D" strokeWidth="2" strokeLinecap="round" />
+                      <circle cx="22" cy="18" r="4" stroke="#1B3A2D" strokeWidth="1.5" fill="none" />
+                    </svg>
+                  </span>
+                  <span className="text-sm font-medium text-forest-muted">Angle Analyzer</span>
+                </div>
+                <span className="text-text-tertiary group-hover:translate-x-1 transition-transform">&rarr;</span>
+              </div>
+              <h3 className="font-serif text-2xl sm:text-3xl tracking-tight text-foreground mb-3">
+                Find the narrative<br />only you can tell.
+              </h3>
+              <div className="space-y-2 mt-4">
+                <div className="bg-white/50 rounded-lg px-4 py-2.5 text-sm text-text-secondary">
+                  <span className="text-xs font-medium text-forest-muted">Primary theme:</span> Environmental data + civic impact
+                </div>
+                <div className="bg-white/50 rounded-lg px-4 py-2.5 text-sm text-text-secondary">
+                  <span className="text-xs font-medium text-forest-muted">Evidence:</span> Air quality research, Climate blog, Internship
+                </div>
+                <div className="bg-white/50 rounded-lg px-4 py-2.5 text-sm text-text-secondary">
+                  <span className="text-xs font-medium text-forest-muted">Angle:</span> Data-driven environmental storytelling
+                </div>
+              </div>
+            </div>
+          </Link>
         </div>
 
-        {/* CTA */}
-        <div className="mt-20 text-center animate-fade-up" style={{ animationDelay: "0.3s" }}>
-          <h2 className="font-serif text-4xl sm:text-5xl tracking-tight text-foreground">
+        {/* Value props row — compact strip */}
+        <div className="max-w-7xl mx-auto mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="rounded-2xl bg-forest px-6 py-5 text-white flex items-center gap-4">
+            <p className="text-3xl font-serif leading-none">0%</p>
+            <p className="text-sm text-white/60">AI-written content. Ever. Your voice stays yours.</p>
+          </div>
+          <div className="rounded-2xl bg-ivory border border-border-soft px-6 py-5 flex items-center gap-4">
+            <p className="text-3xl font-serif text-foreground leading-none">100%</p>
+            <p className="text-sm text-text-tertiary">Your voice, preserved. Feedback only, never rewrites.</p>
+          </div>
+          <div className="rounded-2xl bg-ivory border border-border-soft px-6 py-5 flex items-center gap-4">
+            <p className="text-3xl font-serif text-foreground leading-none">1</p>
+            <p className="text-sm text-text-tertiary">Place for everything. Stop juggling five tools.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA — full-width forest band */}
+      <section className="w-full bg-forest py-16 sm:py-20">
+        <div className="max-w-3xl mx-auto text-center px-6">
+          <h2 className="font-serif text-4xl sm:text-5xl tracking-tight text-white">
             Your story is already there.
             <br />
-            <span className="font-serif italic text-forest-muted">Let&apos;s find it.</span>
+            <span className="font-serif italic text-white/50">Let&apos;s find it.</span>
           </h2>
           <div className="mt-8">
             <Link
               href="/dashboard"
-              className="rounded-full bg-forest text-white px-9 py-3.5 text-base font-medium hover:bg-forest-light transition-colors"
+              className="rounded-full bg-white text-forest px-9 py-3.5 text-base font-semibold hover:bg-white/90 transition-colors"
             >
               Start planning for free
             </Link>
