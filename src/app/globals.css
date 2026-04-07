@@ -4,8 +4,8 @@
   --background: #EDEFED;
   --foreground: #1a1a1a;
   --ivory-warm: #F2F3F0;
-  --periwinkle: #D6DEFF;
-  --periwinkle-hover: #C5CDEF;
+  --sage: #7A9E90;
+  --sage-hover: #6B8F81;
   --forest: #1B3A2D;
   --forest-light: #264A3A;
   --forest-muted: #3D6B56;
@@ -15,17 +15,17 @@
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-ivory: var(--ivory-warm);
-  --color-periwinkle: var(--periwinkle);
-  --color-periwinkle-hover: var(--periwinkle-hover);
-  --color-forest: var(--forest);
-  --color-forest-light: var(--forest-light);
-  --color-forest-muted: var(--forest-muted);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-tertiary: var(--text-tertiary);
-  --color-border-soft: var(--border-soft);
+  --color-background: #EDEFED;
+  --color-foreground: #1a1a1a;
+  --color-ivory: #F2F3F0;
+  --color-sage: #7A9E90;
+  --color-sage-hover: #6B8F81;
+  --color-forest: #1B3A2D;
+  --color-forest-light: #264A3A;
+  --color-forest-muted: #3D6B56;
+  --color-text-secondary: #5a5a5a;
+  --color-text-tertiary: #8a8a8a;
+  --color-border-soft: #d8d9d6;
   --font-sans: var(--font-dm-sans);
   --font-serif: var(--font-instrument);
 }

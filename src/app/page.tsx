@@ -119,7 +119,7 @@ export default function Home() {
             className="animate-fade-up hidden lg:block"
             style={{ animationDelay: "0.3s" }}
           >
-            <div className="bg-periwinkle rounded-2xl p-6 shadow-sm">
+            <div className="bg-sage rounded-2xl p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <span className="w-3 h-3 rounded-full bg-white/40" />
                 <span className="w-3 h-3 rounded-full bg-white/40" />
@@ -165,7 +165,7 @@ export default function Home() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-7xl mx-auto">
           {/* Dashboard card — wide, interactive-feeling */}
           <Link href="/dashboard" className="group">
-            <div className="feature-card bg-periwinkle rounded-2xl p-6 sm:p-8 h-full">
+            <div className="feature-card bg-sage rounded-2xl p-6 sm:p-8 h-full">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2">
                   <span className="w-8 h-8 rounded-lg bg-forest/10 flex items-center justify-center">
@@ -200,7 +200,7 @@ export default function Home() {
 
           {/* Analyzer card */}
           <Link href="/analyzer" className="group">
-            <div className="feature-card bg-periwinkle rounded-2xl p-6 sm:p-8 h-full">
+            <div className="feature-card bg-sage rounded-2xl p-6 sm:p-8 h-full">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2">
                   <span className="w-8 h-8 rounded-lg bg-forest/10 flex items-center justify-center">
@@ -235,15 +235,15 @@ export default function Home() {
         <div className="max-w-7xl mx-auto mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="rounded-2xl bg-forest px-6 py-5 text-white flex items-center gap-4">
             <p className="text-3xl font-serif leading-none">0%</p>
-            <p className="text-sm text-white/60">AI-written content. Ever. Your voice stays yours.</p>
+            <p className="text-sm text-white/60">AI-written content.</p>
           </div>
           <div className="rounded-2xl bg-ivory border border-border-soft px-6 py-5 flex items-center gap-4">
             <p className="text-3xl font-serif text-foreground leading-none">100%</p>
-            <p className="text-sm text-text-tertiary">Your voice, preserved. Feedback only, never rewrites.</p>
+            <p className="text-sm text-text-tertiary">Your voice, preserved. We only give feedback.</p>
           </div>
           <div className="rounded-2xl bg-ivory border border-border-soft px-6 py-5 flex items-center gap-4">
             <p className="text-3xl font-serif text-foreground leading-none">1</p>
-            <p className="text-sm text-text-tertiary">Place for everything. Stop juggling five tools.</p>
+            <p className="text-sm text-text-tertiary">Organization platform for everything.</p>
           </div>
         </div>
       </section>
