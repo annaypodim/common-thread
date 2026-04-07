@@ -49,29 +49,6 @@ export default function Home() {
     <div className="flex flex-col min-h-screen font-sans">
       <div className="noise-overlay" />
 
-      {/* Navbar */}
-      <nav className="w-full px-6 sm:px-10 py-5 flex items-center justify-between animate-fade-in sticky top-0 z-40 bg-forest">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="text-lg font-bold tracking-tight text-white">
-            common thread
-          </Link>
-          <div className="hidden sm:flex items-center gap-6 text-base text-white/60">
-            <Link href="/analyzer" className="nav-link hover:text-white transition-colors">
-              find your angle
-            </Link>
-            <Link href="#" className="nav-link hover:text-white transition-colors">
-              proofread your essay
-            </Link>
-          </div>
-        </div>
-        <Link
-          href="#"
-          className="text-base text-white/60 hover:text-white transition-colors nav-link"
-        >
-          sign in
-        </Link>
-      </nav>
-
       {/* Hero — asymmetric layout */}
       <section className="w-full px-4 sm:px-6 pt-12 sm:pt-20 pb-12">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
