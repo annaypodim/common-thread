@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 
 function CheckIcon({ delay }: { delay: string }) {
   return (
@@ -44,7 +45,16 @@ function ToolLogo({ name }: { name: string }) {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const dashboardHref = user ? "/dashboard" : "/sign-in";
+  const analyzerHref = user ? "/analyzer" : "/sign-in";
+
+  const primaryCtaHref = user ? "/dashboard" : "/sign-in";
   return (
     <div className="flex flex-col min-h-screen font-sans">
       <div className="noise-overlay" />
@@ -72,8 +82,8 @@ export default function Home() {
               className="mt-6 mx-auto max-w-lg text-xl leading-relaxed text-text-secondary animate-fade-up"
               style={{ animationDelay: "0.4s" }}
             >
-              The application strategy platform that helps you find your narrative
-              and organize the application process in one place.
+              This application strategy platform will help you find your narrative
+              and organize the college planning process in one place.
             </p>
 
             <div
@@ -81,7 +91,7 @@ export default function Home() {
               style={{ animationDelay: "0.5s" }}
             >
               <Link
-                href="/dashboard"
+                href={primaryCtaHref}
                 className="rounded-full bg-forest text-white px-8 py-3 text-lg font-medium hover:bg-forest-light transition-colors"
               >
                 Get started for free
@@ -109,71 +119,87 @@ export default function Home() {
       <section className="w-full px-4 sm:px-6 py-12 sm:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-7xl mx-auto">
           {/* Dashboard card — wide, interactive-feeling */}
-          <Link href="/dashboard" className="group">
-            <div className="feature-card bg-sage rounded-2xl p-6 sm:p-8 h-full">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-lg bg-forest/10 flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
-                      <rect x="3" y="4" width="22" height="20" rx="3" stroke="#1B3A2D" strokeWidth="2" fill="none" />
-                      <path d="M3 10h22M10 10v14" stroke="#1B3A2D" strokeWidth="1.5" />
-                    </svg>
-                  </span>
-                  <span className="text-base font-medium text-forest-muted">Dashboard</span>
-                </div>
-                <span className="text-text-tertiary group-hover:translate-x-1 transition-transform">&rarr;</span>
-              </div>
-              <h3 className="font-serif text-3xl sm:text-4xl tracking-tight text-foreground mb-3">
-                Your entire application,<br />organized.
-              </h3>
-              <div className="space-y-2 mt-4">
-                <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary flex items-center justify-between">
-                  <span>Stanford — Early Action</span>
-                  <span className="text-sm text-text-tertiary">Nov 1</span>
-                </div>
-                <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary flex items-center justify-between">
-                  <span>MIT — Regular Decision</span>
-                  <span className="text-sm text-text-tertiary">Jan 5</span>
-                </div>
-                <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary flex items-center justify-between">
-                  <span>UC Berkeley — Essay Draft 2</span>
-                  <span className="text-sm text-forest-muted font-medium">In progress</span>
-                </div>
-              </div>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 min-h-[220px]">
+              <h4 className="text-base font-semibold text-foreground uppercase tracking-wide">Dashboard Structure</h4>
+              <p className="mt-2 text-lg leading-relaxed text-text-secondary">
+                Manage all your college and summer program applications in one place. Keep track of deadlines, essays, and research without switching between tabs. Easily revisit past responses to refine your drafts, organize "Why This College" insights, and stay in control, even during the most overwhelming parts of application season.
+              </p>
             </div>
-          </Link>
+            <Link href={dashboardHref} className="group">
+              <div className="feature-card bg-sage rounded-2xl p-6 sm:p-8 h-full">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-lg bg-forest/10 flex items-center justify-center">
+                      <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
+                        <rect x="3" y="4" width="22" height="20" rx="3" stroke="#1B3A2D" strokeWidth="2" fill="none" />
+                        <path d="M3 10h22M10 10v14" stroke="#1B3A2D" strokeWidth="1.5" />
+                      </svg>
+                    </span>
+                    <span className="text-base font-medium text-forest-muted">Dashboard</span>
+                  </div>
+                  <span className="text-text-tertiary group-hover:translate-x-1 transition-transform">&rarr;</span>
+                </div>
+                <h3 className="font-serif text-3xl sm:text-4xl tracking-tight text-foreground mb-3">
+                  Your entire application,<br />organized.
+                </h3>
+                <div className="space-y-2 mt-4">
+                  <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary flex items-center justify-between">
+                    <span>Stanford — Early Action</span>
+                    <span className="text-sm text-text-tertiary">Nov 1</span>
+                  </div>
+                  <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary flex items-center justify-between">
+                    <span>MIT — Regular Decision</span>
+                    <span className="text-sm text-text-tertiary">Jan 5</span>
+                  </div>
+                  <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary flex items-center justify-between">
+                    <span>UC Berkeley — Essay Draft 2</span>
+                    <span className="text-sm text-forest-muted font-medium">In progress</span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </div>
 
           {/* Analyzer card */}
-          <Link href="/analyzer" className="group">
-            <div className="feature-card bg-sage rounded-2xl p-6 sm:p-8 h-full">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-lg bg-forest/10 flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
-                      <path d="M4 8h20M4 14h14M4 20h8" stroke="#1B3A2D" strokeWidth="2" strokeLinecap="round" />
-                      <circle cx="22" cy="18" r="4" stroke="#1B3A2D" strokeWidth="1.5" fill="none" />
-                    </svg>
-                  </span>
-                  <span className="text-base font-medium text-forest-muted">Angle Analyzer</span>
-                </div>
-                <span className="text-text-tertiary group-hover:translate-x-1 transition-transform">&rarr;</span>
-              </div>
-              <h3 className="font-serif text-3xl sm:text-4xl tracking-tight text-foreground mb-3">
-                Find the narrative<br />only you can tell.
-              </h3>
-              <div className="space-y-2 mt-4">
-                <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary">
-                  <span className="text-sm font-medium text-forest-muted">Primary theme:</span> Environmental data + civic impact
-                </div>
-                <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary">
-                  <span className="text-sm font-medium text-forest-muted">Evidence:</span> Air quality research, Climate blog, Internship
-                </div>
-                <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary">
-                  <span className="text-sm font-medium text-forest-muted">Angle:</span> Data-driven environmental storytelling
-                </div>
-              </div>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 min-h-[220px]">
+              <h4 className="text-base font-semibold text-foreground uppercase tracking-wide">Narrative Analyzer</h4>
+              <p className="mt-2 text-lg leading-relaxed text-text-secondary">
+                Discover the strongest way to frame your story. Based on your activities, projects, and interests, we help you identify compelling narrative angles tailored to each college or program. Instead of guessing what to emphasize, you'll have a clear, strategic direction for your entire application.
+              </p>
             </div>
-          </Link>
+            <Link href={analyzerHref} className="group">
+              <div className="feature-card bg-sage rounded-2xl p-6 sm:p-8 h-full">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-lg bg-forest/10 flex items-center justify-center">
+                      <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
+                        <path d="M4 8h20M4 14h14M4 20h8" stroke="#1B3A2D" strokeWidth="2" strokeLinecap="round" />
+                        <circle cx="22" cy="18" r="4" stroke="#1B3A2D" strokeWidth="1.5" fill="none" />
+                      </svg>
+                    </span>
+                    <span className="text-base font-medium text-forest-muted">Angle Analyzer</span>
+                  </div>
+                  <span className="text-text-tertiary group-hover:translate-x-1 transition-transform">&rarr;</span>
+                </div>
+                <h3 className="font-serif text-3xl sm:text-4xl tracking-tight text-foreground mb-3">
+                  Find the narrative<br />only you can tell.
+                </h3>
+                <div className="space-y-2 mt-4">
+                  <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary">
+                    <span className="text-sm font-medium text-forest-muted">Primary theme:</span> Environmental data + civic impact
+                  </div>
+                  <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary">
+                    <span className="text-sm font-medium text-forest-muted">Evidence:</span> Air quality research, Climate blog, Internship
+                  </div>
+                  <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary">
+                    <span className="text-sm font-medium text-forest-muted">Angle:</span> Data-driven environmental storytelling
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </div>
         </div>
 
         {/* Value props row — compact strip */}
@@ -203,7 +229,7 @@ export default function Home() {
           </h2>
           <div className="mt-8">
             <Link
-              href="/dashboard"
+              href={primaryCtaHref}
               className="rounded-full bg-white text-forest px-9 py-3.5 text-lg font-semibold hover:bg-white/90 transition-colors"
             >
               Start planning for free

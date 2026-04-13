@@ -2,13 +2,21 @@
 
 import { signInWithGoogle, signOut } from "@/lib/auth";
 
-export function SignInButton() {
+type GoogleButtonProps = {
+  label?: string;
+  className?: string;
+};
+
+export function GoogleSignInButton({
+  label = "Continue with Google",
+  className = "",
+}: GoogleButtonProps) {
   return (
     <button
       onClick={() => signInWithGoogle()}
-      className="text-base text-white/60 hover:text-white transition-colors nav-link cursor-pointer"
+      className={`inline-flex items-center justify-center gap-2 rounded-full bg-forest px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-forest-light ${className}`}
     >
-      sign in
+      {label}
     </button>
   );
 }
