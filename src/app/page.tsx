@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 function CheckIcon({ delay }: { delay: string }) {
   return (
@@ -51,10 +52,14 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const dashboardHref = user ? "/dashboard" : "/sign-in";
-  const analyzerHref = user ? "/analyzer" : "/sign-in";
+  if (user) {
+    redirect("/dashboard");
+  }
 
-  const primaryCtaHref = user ? "/dashboard" : "/sign-in";
+  const dashboardHref = "/sign-in";
+  const analyzerHref = "/sign-in";
+
+  const primaryCtaHref = "/sign-in";
   return (
     <div className="flex flex-col min-h-screen font-sans">
       <div className="noise-overlay" />
