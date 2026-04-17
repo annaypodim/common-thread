@@ -35,7 +35,6 @@ export default async function Dashboard() {
   return (
     <div className="flex flex-1 bg-ivory text-foreground">
       <aside className="hidden w-72 shrink-0 border-r border-border-soft bg-white/60 px-5 py-6 md:block">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest">Common-thread</p>
         <h1 className="mt-2 text-xl font-semibold text-foreground">Application Workspace</h1>
 
         <nav className="mt-8 flex flex-col gap-1">
@@ -59,7 +58,7 @@ export default async function Dashboard() {
           <p className="mt-2 text-sm text-text-secondary">School: Evergreen High School</p>
           <p className="mt-1 text-sm text-text-secondary">Intended major: Cognitive Science</p>
           <p className="mt-1 text-sm text-text-secondary">Activities: 0 listed</p>
-          <p className="mt-1 text-sm text-text-secondary">Awareds: 0 listed</p>
+          <p className="mt-1 text-sm text-text-secondary">Awards: 0 listed</p>
         </div>
       </aside>
 
@@ -69,7 +68,6 @@ export default async function Dashboard() {
           <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">Welcome back, {user.user_metadata?.full_name?.split(" ")[0] ?? "Student"}</h2>
-              <p className="mt-1 text-sm text-text-secondary">Your application home base: deadlines, drafts, and next steps in one place.</p>
             </div>
             <button className="rounded-full bg-forest px-4 py-2 text-sm font-medium text-white hover:bg-forest-light transition-colors">
               Add College

@@ -25,7 +25,7 @@ export async function Navbar() {
       <div className="flex items-center gap-4">
         {user ? (
           <>
-            <span className="text-sm text-white/60 hidden sm:block">
+            <span className="hidden text-base text-white/85 sm:block">
               {user.user_metadata?.full_name ?? user.email}
             </span>
             <SignOutButton />
