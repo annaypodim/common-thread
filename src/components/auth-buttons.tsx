@@ -25,7 +25,7 @@ export function SignOutButton() {
   return (
     <button
       onClick={() => signOut()}
-      className="text-sm text-white/40 hover:text-white transition-colors nav-link cursor-pointer"
+      className="cursor-pointer nav-link text-base text-white/85 transition-colors hover:text-white"
     >
       sign out
     </button>
