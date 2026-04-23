@@ -9,11 +9,17 @@ type AddCollegeActionState = {
   savedCollege?: SavedCollege;
 };
 
+type RemoveCollegeActionState = {
+  error?: string;
+  success?: boolean;
+};
+
 type DashboardCollegeManagerProps = {
   colleges: CollegeRecord[];
   initialSavedColleges: SavedCollege[];
   defaultIntendedMajor: string;
   addCollegeAction: (formData: FormData) => Promise<AddCollegeActionState>;
+  removeCollegeAction: (formData: FormData) => Promise<RemoveCollegeActionState>;
 };
 
 function slugifyCollege(name: string) {
@@ -31,17 +37,32 @@ function getCollegeScore(query: string, college: CollegeRecord) {
   const state = college.state.toLowerCase();
   const city = college.city.toLowerCase();
   const combined = `${name} ${city} ${state}`;
+  const nameWords = name.split(/\s+/).filter(Boolean);
+  const cityWords = city.split(/\s+/).filter(Boolean);
+  const stateWords = state.split(/\s+/).filter(Boolean);
 
   if (name === normalizedQuery) {
     return 100;
   }
 
   if (name.startsWith(normalizedQuery)) {
-    return 80;
+    return 90;
+  }
+
+  if (nameWords.some((word) => word.startsWith(normalizedQuery))) {
+    return 82;
   }
 
   if (name.includes(normalizedQuery)) {
     return 65;
+  }
+
+  if (city.startsWith(normalizedQuery) || state.startsWith(normalizedQuery)) {
+    return 55;
+  }
+
+  if (cityWords.some((word) => word.startsWith(normalizedQuery)) || stateWords.some((word) => word.startsWith(normalizedQuery))) {
+    return 50;
   }
 
   const queryParts = normalizedQuery.split(/\s+/).filter(Boolean);
@@ -49,19 +70,7 @@ function getCollegeScore(query: string, college: CollegeRecord) {
     return 45 - Math.max(0, name.indexOf(queryParts[0]) / 10);
   }
 
-  let lastMatchIndex = -1;
-  let sequentialMatches = 0;
-  for (const character of normalizedQuery) {
-    const nextIndex = combined.indexOf(character, lastMatchIndex + 1);
-    if (nextIndex === -1) {
-      return -1;
-    }
-
-    sequentialMatches += 1;
-    lastMatchIndex = nextIndex;
-  }
-
-  return 15 + sequentialMatches / Math.max(normalizedQuery.length, 1);
+  return -1;
 }
 
 function findBestCollegeMatch(query: string, colleges: CollegeRecord[]) {
@@ -84,6 +93,7 @@ export function DashboardCollegeManager({
   initialSavedColleges,
   defaultIntendedMajor,
   addCollegeAction,
+  removeCollegeAction,
 }: DashboardCollegeManagerProps) {
   const [savedColleges, setSavedColleges] = useState(initialSavedColleges);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -92,6 +102,7 @@ export function DashboardCollegeManager({
   const [intendedMajor, setIntendedMajor] = useState(defaultIntendedMajor);
   const [toastMessage, setToastMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [removingCollegeId, setRemovingCollegeId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const suggestions = useMemo(() => {
@@ -163,29 +174,44 @@ export function DashboardCollegeManager({
     });
   };
 
+  const handleRemoveCollege = (savedCollege: SavedCollege) => {
+    const formData = new FormData();
+    formData.set("savedCollegeId", savedCollege.id);
+    setErrorMessage("");
+    setRemovingCollegeId(savedCollege.id);
+
+    startTransition(async () => {
+      const result = await removeCollegeAction(formData);
+
+      if (result.error) {
+        setErrorMessage(typeof result.error === "string" ? result.error : "Unable to remove college right now.");
+        setRemovingCollegeId(null);
+        return;
+      }
+
+      setSavedColleges((current) => current.filter((college) => college.id !== savedCollege.id));
+      setToastMessage(`${savedCollege.collegeName} removed from your dashboard`);
+      setRemovingCollegeId(null);
+    });
+  };
+
   return (
     <>
-      <header className="rounded-2xl border border-border-soft bg-white/90 p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest">Dashboard</p>
-        <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">College dashboard</h2>
-            <p className="mt-1 text-sm text-text-secondary">Search the full college dataset and save schools to your workspace.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="rounded-full bg-forest px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-forest-light"
-          >
-            Add College
-          </button>
-        </div>
-      </header>
-
-      <section className="mt-5 grid gap-5 xl:grid-cols-3">
+      <section className="mt-4 grid gap-5 xl:grid-cols-3">
         <article className="rounded-2xl border border-border-soft bg-white p-5 xl:col-span-2">
-          <h3 className="text-lg font-semibold">Active Applications</h3>
-          <p className="mt-1 text-sm text-text-secondary">Tap any college to open its supplementals and research workspace.</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">Active Applications</h3>
+              <p className="mt-1 text-sm text-text-secondary">Tap any college to open its supplementals and research workspace.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="rounded-full bg-forest px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-forest-light"
+            >
+              Add College
+            </button>
+          </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {savedColleges.length === 0 && (
               <div className="rounded-xl border border-dashed border-border-soft bg-ivory/50 p-4 text-sm text-text-secondary sm:col-span-2">
@@ -200,10 +226,6 @@ export function DashboardCollegeManager({
                 className="rounded-xl border border-border-soft bg-ivory/70 p-4 transition-colors hover:bg-ivory"
               >
                 <p className="font-medium text-foreground">{college.collegeName}</p>
-                <p className="mt-1 text-sm text-text-secondary">{college.state || "State unavailable"}</p>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-text-tertiary">
-                  {college.intendedMajor || "Intended major not added"}
-                </p>
               </Link>
             ))}
           </div>
@@ -249,7 +271,17 @@ export function DashboardCollegeManager({
 
           {savedColleges.map((college) => (
             <article key={`${college.id}-card`} className="rounded-xl border border-border-soft bg-ivory/60 p-4">
-              <p className="text-base font-semibold text-foreground">{college.collegeName}</p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-base font-semibold text-foreground">{college.collegeName}</p>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCollege(college)}
+                  disabled={isPending && removingCollegeId === college.id}
+                  className="rounded-full border border-border-soft px-3 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isPending && removingCollegeId === college.id ? "Removing..." : "Remove"}
+                </button>
+              </div>
               <p className="mt-1 text-sm text-text-secondary">Located in {college.state || "an unknown state"}</p>
               <div className="mt-4 rounded-lg border border-border-soft bg-white px-3 py-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-tertiary">Intended Major</p>

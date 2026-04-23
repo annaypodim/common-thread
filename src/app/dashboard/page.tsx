@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { getAllColleges, getMissingUserCollegesTableMessage, getUserSavedColleges } from "@/lib/colleges";
-import { getUserProfileData, hasAnyProfileData, isProfileComplete } from "@/lib/profile";
+import { getUserProfileData, hasAnyProfileData } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
@@ -18,7 +18,6 @@ const navItems = [
 export default async function Dashboard() {
   const user = await requireUser();
   const profile = await getUserProfileData(user.id);
-  const profileComplete = isProfileComplete(profile);
   const hasStartedProfile = hasAnyProfileData(profile);
   const [allColleges, savedColleges] = await Promise.all([
     getAllColleges(),
@@ -81,6 +80,32 @@ export default async function Dashboard() {
     };
   }
 
+  async function removeCollege(formData: FormData) {
+    "use server";
+
+    const currentUser = await requireUser();
+    const supabase = await createClient();
+    const savedCollegeId = String(formData.get("savedCollegeId") ?? "").trim();
+
+    if (!savedCollegeId) {
+      return { error: "College could not be removed. Missing record id." };
+    }
+
+    const { error } = await supabase
+      .from("user_colleges")
+      .delete()
+      .eq("id", savedCollegeId)
+      .eq("user_id", currentUser.id);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath("/dashboard");
+
+    return { success: true };
+  }
+
   return (
     <div className="flex flex-1 bg-ivory text-foreground">
       <aside className="hidden w-72 shrink-0 border-r border-border-soft bg-white/60 px-5 py-6 md:block">
@@ -123,37 +148,12 @@ export default async function Dashboard() {
       </aside>
 
       <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
-        {!hasStartedProfile && (
-          <div className="mb-4 flex flex-col gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-red-700">
-              Your profile is incomplete. Fill in your high school, intended majors, activities, and honors to unlock a complete dashboard snapshot.
-            </p>
-            <Link
-              href="/profile"
-              className="inline-flex w-fit rounded-full bg-red-100 px-4 py-2 text-sm font-medium text-red-800 transition-colors hover:bg-red-200"
-            >
-              Complete Profile
-            </Link>
-          </div>
-        )}
-
-        <div className="rounded-2xl border border-border-soft bg-white/90 p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest">Dashboard</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-            Welcome back, {user.user_metadata?.full_name?.split(" ")[0] ?? "Student"}
-          </h2>
-          <p className="mt-1 text-sm text-text-secondary">
-            {profileComplete
-              ? "Your profile snapshot is complete and ready to support college planning."
-              : "Finish your profile to personalize each saved college workspace even more."}
-          </p>
-        </div>
-
         <DashboardCollegeManager
           colleges={allColleges}
           initialSavedColleges={savedColleges}
           defaultIntendedMajor={profile.intendedMajors}
           addCollegeAction={addCollege}
+          removeCollegeAction={removeCollege}
         />
       </main>
     </div>

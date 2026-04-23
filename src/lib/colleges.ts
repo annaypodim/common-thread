@@ -33,16 +33,33 @@ export type SavedCollege = {
 
 export async function getAllColleges(): Promise<CollegeRecord[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("colleges")
-    .select("name, address, city, state, zip, website")
-    .order("name", { ascending: true });
+  const pageSize = 1000;
+  const allColleges: CollegeRecord[] = [];
+  let start = 0;
 
-  if (error) {
-    throw new Error(error.message);
+  while (true) {
+    const end = start + pageSize - 1;
+    const { data, error } = await supabase
+      .from("colleges")
+      .select("name, address, city, state, zip, website")
+      .order("name", { ascending: true })
+      .range(start, end);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const batch = (data as CollegeRecord[] | null) ?? [];
+    allColleges.push(...batch);
+
+    if (batch.length < pageSize) {
+      break;
+    }
+
+    start += pageSize;
   }
 
-  return (data as CollegeRecord[] | null) ?? [];
+  return allColleges;
 }
 
 export async function getUserSavedColleges(userId: string): Promise<SavedCollege[]> {
