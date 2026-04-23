@@ -104,9 +104,7 @@ export default async function ProfilePage() {
 
     const activities = cleanActivities(rawActivities);
     const honors = cleanHonors(rawHonors);
-    const profileComplete = Boolean(
-      highSchool && intendedMajors && honors.length > 0
-    );
+    const profileComplete = Boolean(highSchool && intendedMajors);
 
     const { error: profileError } = await supabase.from("user_profiles").upsert(
       {
@@ -168,8 +166,7 @@ export default async function ProfilePage() {
     <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest">Profile</p>
-          <h1 className="mt-1 text-2xl font-semibold">Build your application profile</h1>
+          <h1 className="text-2xl font-semibold">Build your application profile</h1>
         </div>
         <Link href="/dashboard" className="rounded-full border border-border-soft px-4 py-2 text-sm">
           Back to Dashboard
