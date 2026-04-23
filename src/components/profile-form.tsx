@@ -54,26 +54,27 @@ export function ProfileForm({
   return (
     <form action={saveAction} className="space-y-8">
       <section className="rounded-2xl border border-border-soft bg-white p-5">
-        <h2 className="text-lg font-semibold">Profile Basics</h2>
+        <h2 className="text-lg font-semibold">School Info</h2>
+        <p className="mt-2 text-sm text-text-tertiary">
+          <span className="font-medium text-red-500">*</span> Required for a complete profile. You can save a draft and finish later.
+        </p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="text-sm text-text-secondary">
-            High School
+            High School <span className="text-red-500">*</span>
             <input
               name="highSchool"
               defaultValue={initialHighSchool}
               className="mt-1 w-full rounded-lg border border-border-soft px-3 py-2 text-foreground"
               placeholder="Evergreen High School"
-              required
             />
           </label>
           <label className="text-sm text-text-secondary">
-            Potential Major(s)
+            Potential Major(s) <span className="text-red-500">*</span>
             <input
               name="intendedMajors"
               defaultValue={initialMajors}
               className="mt-1 w-full rounded-lg border border-border-soft px-3 py-2 text-foreground"
               placeholder="Computer Science, Cognitive Science"
-              required
             />
           </label>
         </div>
