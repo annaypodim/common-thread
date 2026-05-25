@@ -26,6 +26,10 @@ function slugifyCollege(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+function toTitleCase(str: string) {
+  return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function getCollegeScore(query: string, college: CollegeRecord) {
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -223,9 +227,9 @@ export function DashboardCollegeManager({
               <Link
                 key={college.id}
                 href={`/colleges/${slugifyCollege(college.collegeName)}`}
-                className="rounded-xl border border-border-soft bg-ivory/70 p-4 transition-colors hover:bg-ivory"
+                className="flex min-h-[5rem] flex-col justify-center rounded-xl border border-border-soft bg-ivory/70 p-4 transition-colors hover:bg-ivory"
               >
-                <p className="font-medium text-foreground">{college.collegeName}</p>
+                <p className="font-medium text-foreground">{toTitleCase(college.collegeName)}</p>
               </Link>
             ))}
           </div>
@@ -261,7 +265,6 @@ export function DashboardCollegeManager({
 
       <section className="mt-5 rounded-2xl border border-border-soft bg-white p-5">
         <h3 className="text-lg font-semibold">Saved Colleges</h3>
-        <p className="mt-1 text-sm text-text-secondary">Cards for each school appear below your planning docs and analyzer snapshot.</p>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {savedColleges.length === 0 && (
             <div className="rounded-xl border border-dashed border-border-soft bg-ivory/50 p-4 text-sm text-text-secondary md:col-span-2 xl:col-span-3">
@@ -270,9 +273,9 @@ export function DashboardCollegeManager({
           )}
 
           {savedColleges.map((college) => (
-            <article key={`${college.id}-card`} className="rounded-xl border border-border-soft bg-ivory/60 p-4">
+            <article key={`${college.id}-card`} className="flex flex-col rounded-xl border border-border-soft bg-ivory/60 p-4">
               <div className="flex items-start justify-between gap-3">
-                <p className="text-base font-semibold text-foreground">{college.collegeName}</p>
+                <p className="text-base font-semibold text-foreground">{toTitleCase(college.collegeName)}</p>
                 <button
                   type="button"
                   onClick={() => handleRemoveCollege(college)}
@@ -282,11 +285,10 @@ export function DashboardCollegeManager({
                   {isPending && removingCollegeId === college.id ? "Removing..." : "Remove"}
                 </button>
               </div>
-              <p className="mt-1 text-sm text-text-secondary">Located in {college.state || "an unknown state"}</p>
-              <div className="mt-4 rounded-lg border border-border-soft bg-white px-3 py-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-tertiary">Intended Major</p>
-                <p className="mt-1 text-sm text-foreground">{college.intendedMajor || "Not added yet"}</p>
-              </div>
+              <p className="mt-1 text-sm text-text-secondary">{[college.city && toTitleCase(college.city), college.state].filter(Boolean).join(", ") || "Location unknown"}</p>
+              <p className="mt-auto pt-3 text-sm text-text-secondary">
+                Major — <span className="text-foreground">{college.intendedMajor || "—"}</span>
+              </p>
             </article>
           ))}
         </div>
@@ -354,7 +356,7 @@ export function DashboardCollegeManager({
                           isSelected ? "bg-forest text-white" : "bg-white text-foreground hover:bg-ivory"
                         }`}
                       >
-                        <p className="text-sm font-medium">{college.name}</p>
+                        <p className="text-sm font-medium">{toTitleCase(college.name)}</p>
                         <p className={`mt-1 text-xs ${isSelected ? "text-white/80" : "text-text-secondary"}`}>
                           {college.city}, {college.state}
                         </p>
@@ -379,7 +381,7 @@ export function DashboardCollegeManager({
 
               {selectedCollege && (
                 <div className="rounded-2xl border border-border-soft bg-ivory/60 px-4 py-3 text-sm text-text-secondary">
-                  <p className="font-medium text-foreground">{selectedCollege.name}</p>
+                  <p className="font-medium text-foreground">{toTitleCase(selectedCollege.name)}</p>
                   <p className="mt-1">{selectedCollege.city}, {selectedCollege.state}</p>
                 </div>
               )}
