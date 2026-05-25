@@ -227,9 +227,9 @@ export function DashboardCollegeManager({
               <Link
                 key={college.id}
                 href={`/colleges/${slugifyCollege(college.collegeName)}`}
-                className="flex min-h-[5rem] flex-col justify-center rounded-xl border border-border-soft bg-ivory/70 p-4 transition-colors hover:bg-ivory"
+                className="flex min-h-[3rem] flex-col justify-center rounded-lg border border-border-soft bg-ivory/70 px-3 py-2 transition-colors hover:bg-ivory"
               >
-                <p className="font-medium text-foreground">{toTitleCase(college.collegeName)}</p>
+                <p className="text-sm font-medium text-foreground">{toTitleCase(college.collegeName)}</p>
               </Link>
             ))}
           </div>
@@ -254,6 +254,7 @@ export function DashboardCollegeManager({
 
         <article className="rounded-2xl border border-border-soft bg-white p-5">
           <h3 className="text-lg font-semibold">Angle Analyzer Snapshot</h3>
+          <p className="mt-2 text-sm text-text-secondary">Haven't found your angle yet.</p>
           <Link
             href="/analyzer"
             className="mt-4 inline-flex rounded-full border border-border-soft px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-ivory"
