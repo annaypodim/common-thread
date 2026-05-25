@@ -1,6 +1,10 @@
 import { requireUser } from "@/lib/auth";
-import { getUserProfileData, hasAnyProfileData, isProfileComplete } from "@/lib/profile";
+import { getAllColleges, getMissingUserCollegesTableMessage, getUserSavedColleges } from "@/lib/colleges";
+import { getUserProfileData, hasAnyProfileData } from "@/lib/profile";
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
+import { DashboardCollegeManager } from "@/components/dashboard-college-manager";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", active: true },
@@ -11,17 +15,96 @@ const navItems = [
   { label: "Settings", href: "/dashboard" },
 ];
 
-const upcomingDeadlines: Array<{ college: string; due: string }> = [];
-
-const activeApplications: Array<{ college: string; status: string; progress: string }> = [];
-
-const savedResearch: string[] = [];
-
 export default async function Dashboard() {
   const user = await requireUser();
   const profile = await getUserProfileData(user.id);
-  const profileComplete = isProfileComplete(profile);
   const hasStartedProfile = hasAnyProfileData(profile);
+  const [allColleges, savedColleges] = await Promise.all([
+    getAllColleges(),
+    getUserSavedColleges(user.id),
+  ]);
+
+  async function addCollege(formData: FormData) {
+    "use server";
+
+    const currentUser = await requireUser();
+    const supabase = await createClient();
+
+    const collegeName = String(formData.get("name") ?? "").trim();
+    const address = String(formData.get("address") ?? "").trim();
+    const city = String(formData.get("city") ?? "").trim();
+    const state = String(formData.get("state") ?? "").trim();
+    const zip = String(formData.get("zip") ?? "").trim();
+    const website = String(formData.get("website") ?? "").trim();
+    const intendedMajor = String(formData.get("intendedMajor") ?? "").trim();
+
+    if (!collegeName) {
+      return { error: "Please select a college from the list." };
+    }
+
+    const { data, error } = await supabase
+      .from("user_colleges")
+      .upsert(
+        {
+          user_id: currentUser.id,
+          college_name: collegeName,
+          state,
+          intended_major: intendedMajor,
+          address,
+          city,
+          zip,
+          website,
+        },
+        { onConflict: "user_id,college_name,state" }
+      )
+      .select("id, college_name, state, intended_major, address, city, zip, website")
+      .single();
+
+    if (error) {
+      return { error: getMissingUserCollegesTableMessage(error.message) };
+    }
+
+    revalidatePath("/dashboard");
+
+    return {
+      savedCollege: {
+        id: data.id,
+        collegeName: data.college_name,
+        state: data.state ?? "",
+        intendedMajor: data.intended_major ?? "",
+        address: data.address ?? "",
+        city: data.city ?? "",
+        zip: data.zip ?? "",
+        website: data.website ?? "",
+      },
+    };
+  }
+
+  async function removeCollege(formData: FormData) {
+    "use server";
+
+    const currentUser = await requireUser();
+    const supabase = await createClient();
+    const savedCollegeId = String(formData.get("savedCollegeId") ?? "").trim();
+
+    if (!savedCollegeId) {
+      return { error: "College could not be removed. Missing record id." };
+    }
+
+    const { error } = await supabase
+      .from("user_colleges")
+      .delete()
+      .eq("id", savedCollegeId)
+      .eq("user_id", currentUser.id);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath("/dashboard");
+
+    return { success: true };
+  }
 
   return (
     <div className="flex flex-1 bg-ivory text-foreground">
@@ -65,90 +148,13 @@ export default async function Dashboard() {
       </aside>
 
       <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
-        {!hasStartedProfile && (
-          <div className="mb-4 flex flex-col gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-red-700">
-              Your profile is incomplete. Fill in your high school, intended majors, activities, and honors to unlock a complete dashboard snapshot.
-            </p>
-            <Link
-              href="/profile"
-              className="inline-flex w-fit rounded-full bg-red-100 px-4 py-2 text-sm font-medium text-red-800 transition-colors hover:bg-red-200"
-            >
-              Complete Profile
-            </Link>
-          </div>
-        )}
-
-        <header className="rounded-2xl border border-border-soft bg-white/90 p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest">Dashboard</p>
-          <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight">Welcome back, {user.user_metadata?.full_name?.split(" ")[0] ?? "Student"}</h2>
-            </div>
-            <button className="rounded-full bg-forest px-4 py-2 text-sm font-medium text-white hover:bg-forest-light transition-colors">
-              Add College
-            </button>
-          </div>
-        </header>
-
-        <section className="mt-5 grid gap-5 xl:grid-cols-3">
-          <article className="rounded-2xl border border-border-soft bg-white p-5 xl:col-span-2">
-            <h3 className="text-lg font-semibold">Active Applications</h3>
-            <p className="mt-1 text-sm text-text-secondary">Tap any college to open its supplementals and research workspace.</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {activeApplications.map((app) => (
-                <Link
-                  key={app.college}
-                  href={`/colleges/${app.college.toLowerCase().replace(/\s+/g, "-")}`}
-                  className="rounded-xl border border-border-soft bg-ivory/70 p-4 hover:bg-ivory transition-colors"
-                >
-                  <p className="font-medium text-foreground">{app.college}</p>
-                  <p className="mt-1 text-sm text-text-secondary">{app.status}</p>
-                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-text-tertiary">{app.progress}</p>
-                </Link>
-              ))}
-            </div>
-          </article>
-
-          <article className="rounded-2xl border border-border-soft bg-white p-5">
-            <h3 className="text-lg font-semibold">Upcoming Deadlines</h3>
-            <p className="mt-1 text-sm text-text-secondary">Your calendar organization updates as you add colleges.</p>
-            <ul className="mt-4 space-y-3">
-              {upcomingDeadlines.map((deadline) => (
-                <li key={`${deadline.college}-${deadline.due}`} className="rounded-xl border border-border-soft bg-ivory/70 p-3">
-                  <p className="text-sm font-medium">{deadline.college}</p>
-                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-forest">Due {deadline.due}</p>
-                </li>
-              ))}
-            </ul>
-          </article>
-        </section>
-
-        <section className="mt-5 grid gap-5 lg:grid-cols-2">
-          <article className="rounded-2xl border border-border-soft bg-white p-5">
-            <h3 className="text-lg font-semibold">Planning Docs</h3>
-            <button className="mt-4 inline-flex rounded-full border border-border-soft px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-ivory">
-              Add Doc
-            </button>
-            <ul className="mt-3 space-y-2">
-              {savedResearch.map((note) => (
-                <li key={note} className="rounded-lg border border-border-soft px-3 py-2 text-sm text-text-secondary bg-ivory/60">
-                  {note}
-                </li>
-              ))}
-            </ul>
-          </article>
-
-          <article className="rounded-2xl border border-border-soft bg-white p-5">
-            <h3 className="text-lg font-semibold">Angle Analyzer Snapshot</h3>
-            <Link
-              href="/analyzer"
-              className="mt-4 inline-flex rounded-full border border-border-soft px-4 py-2 text-sm font-medium text-foreground hover:bg-ivory transition-colors"
-            >
-              Open Angle Analyzer
-            </Link>
-          </article>
-        </section>
+        <DashboardCollegeManager
+          colleges={allColleges}
+          initialSavedColleges={savedColleges}
+          defaultIntendedMajor={profile.intendedMajors}
+          addCollegeAction={addCollege}
+          removeCollegeAction={removeCollege}
+        />
       </main>
     </div>
   );
