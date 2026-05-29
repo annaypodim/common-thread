@@ -49,6 +49,80 @@ function cleanHonors(honors: Honor[]) {
     );
 }
 
+function withoutId<T extends { id?: string }>(item: T) {
+  const copy = { ...item };
+  delete copy.id;
+  return copy;
+}
+
+async function persistProfile(formData: FormData) {
+  const currentUser = await requireUser();
+  const supabase = await createClient();
+
+  const highSchool = String(formData.get("highSchool") ?? "").trim();
+  const intendedMajors = String(formData.get("intendedMajors") ?? "").trim();
+  const rawActivities = JSON.parse(String(formData.get("activities") ?? "[]")) as Activity[];
+  const rawHonors = JSON.parse(String(formData.get("honors") ?? "[]")) as Honor[];
+
+  const activities = cleanActivities(rawActivities);
+  const honors = cleanHonors(rawHonors);
+  const profileComplete = Boolean(highSchool && intendedMajors);
+
+  const { error: profileError } = await supabase.from("user_profiles").upsert(
+    {
+      user_id: currentUser.id,
+      high_school: highSchool,
+      intended_majors: intendedMajors,
+      profile_complete: profileComplete,
+    },
+    { onConflict: "user_id" }
+  );
+
+  if (profileError) {
+    throw new Error(profileError.message);
+  }
+
+  const { error: deleteHonorsError } = await supabase.from("user_honors").delete().eq("user_id", currentUser.id);
+  const { error: deleteActivitiesError } = await supabase.from("user_activities").delete().eq("user_id", currentUser.id);
+
+  if (deleteHonorsError) {
+    throw new Error(deleteHonorsError.message);
+  }
+
+  if (deleteActivitiesError) {
+    throw new Error(deleteActivitiesError.message);
+  }
+
+  if (activities.length > 0) {
+    const { error: activitiesError } = await supabase.from("user_activities").insert(
+      activities.map((activity) => ({
+        user_id: currentUser.id,
+        ...withoutId(activity),
+      }))
+    );
+
+    if (activitiesError) {
+      throw new Error(activitiesError.message);
+    }
+  }
+
+  if (honors.length > 0) {
+    const { error: honorsError } = await supabase.from("user_honors").insert(
+      honors.map((honor) => ({
+        user_id: currentUser.id,
+        ...withoutId(honor),
+      }))
+    );
+
+    if (honorsError) {
+      throw new Error(honorsError.message);
+    }
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/profile");
+}
+
 export default async function ProfilePage() {
   const user = await requireUser();
   const profile = await getUserProfileData(user.id);
@@ -94,72 +168,14 @@ export default async function ProfilePage() {
   async function saveProfile(formData: FormData) {
     "use server";
 
-    const currentUser = await requireUser();
-    const supabase = await createClient();
-
-    const highSchool = String(formData.get("highSchool") ?? "").trim();
-    const intendedMajors = String(formData.get("intendedMajors") ?? "").trim();
-    const rawActivities = JSON.parse(String(formData.get("activities") ?? "[]")) as Activity[];
-    const rawHonors = JSON.parse(String(formData.get("honors") ?? "[]")) as Honor[];
-
-    const activities = cleanActivities(rawActivities);
-    const honors = cleanHonors(rawHonors);
-    const profileComplete = Boolean(highSchool && intendedMajors);
-
-    const { error: profileError } = await supabase.from("user_profiles").upsert(
-      {
-        user_id: currentUser.id,
-        high_school: highSchool,
-        intended_majors: intendedMajors,
-        profile_complete: profileComplete,
-      },
-      { onConflict: "user_id" }
-    );
-
-    if (profileError) {
-      throw new Error(profileError.message);
-    }
-
-    const { error: deleteHonorsError } = await supabase.from("user_honors").delete().eq("user_id", currentUser.id);
-    const { error: deleteActivitiesError } = await supabase.from("user_activities").delete().eq("user_id", currentUser.id);
-
-    if (deleteHonorsError) {
-      throw new Error(deleteHonorsError.message);
-    }
-
-    if (deleteActivitiesError) {
-      throw new Error(deleteActivitiesError.message);
-    }
-
-    if (activities.length > 0) {
-      const { error: activitiesError } = await supabase.from("user_activities").insert(
-        activities.map(({ id: _activityId, ...activity }) => ({
-          user_id: currentUser.id,
-          ...activity,
-        }))
-      );
-
-      if (activitiesError) {
-        throw new Error(activitiesError.message);
-      }
-    }
-
-    if (honors.length > 0) {
-      const { error: honorsError } = await supabase.from("user_honors").insert(
-        honors.map(({ id: _honorId, ...honor }) => ({
-          user_id: currentUser.id,
-          ...honor,
-        }))
-      );
-
-      if (honorsError) {
-        throw new Error(honorsError.message);
-      }
-    }
-
-    revalidatePath("/dashboard");
-    revalidatePath("/profile");
+    await persistProfile(formData);
     redirect("/profile");
+  }
+
+  async function autosaveProfile(formData: FormData) {
+    "use server";
+
+    await persistProfile(formData);
   }
 
   return (
@@ -179,6 +195,7 @@ export default async function ProfilePage() {
         initialActivities={profile.activities}
         initialHonors={profile.honors}
         saveAction={saveProfile}
+        autosaveAction={autosaveProfile}
         deleteActivityAction={deleteActivity}
         deleteHonorAction={deleteHonor}
       />
