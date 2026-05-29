@@ -953,12 +953,6 @@ export function ProfileForm({
         ) : null}
       </section>
 
-      <button
-        type="submit"
-        className="rounded-full bg-forest px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-forest-light"
-      >
-        Save Profile
-      </button>
     </form>
   );
 }
