@@ -168,7 +168,7 @@ export function DashboardCollegeManager({
           return current;
         }
 
-        return [...current, result.savedCollege];
+        return [...current, result.savedCollege!];
       });
       setToastMessage(`${result.savedCollege.collegeName} added to your dashboard`);
       setIsModalOpen(false);
