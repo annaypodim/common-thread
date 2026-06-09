@@ -95,10 +95,11 @@ function LoadingSteps({ currentStep }: { currentStep: number }) {
 
 function AngleCard({ angle, rank }: { angle: NarrativeAngle; rank: number }) {
   const isTop = rank === 0;
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   return (
     <div
-      className={`rounded-2xl p-8 ${
+      className={`rounded-2xl px-5 py-6 ${
         isTop ? "bg-forest text-white" : "border border-border-soft bg-white"
       }`}
     >
@@ -120,7 +121,7 @@ function AngleCard({ angle, rank }: { angle: NarrativeAngle; rank: number }) {
         {angle.title}
       </h3>
 
-      {/* Major — right under the title */}
+      {/* Major pill */}
       <div className={`mt-3 inline-flex items-center rounded-full px-4 py-1.5 ${
         isTop ? "bg-white/15 border border-white/25" : "bg-sage/10 border border-sage/25"
       }`}>
@@ -129,55 +130,31 @@ function AngleCard({ angle, rank }: { angle: NarrativeAngle; rank: number }) {
         </span>
       </div>
 
-      {/* Summary */}
-      <p
-        className={`mt-5 text-base leading-relaxed ${
-          isTop ? "text-white/85" : "text-text-secondary"
-        }`}
-      >
-        {angle.summary}
-      </p>
-
-      {/* Evidence + Skills */}
-      <div className="mt-6 grid gap-5 sm:grid-cols-2">
-        <div>
+      {/* Essay ideas — primary content */}
+      {angle.essay_prompts?.length > 0 && (
+        <div className="mt-6">
           <p className={`text-xs font-semibold uppercase tracking-[0.12em] mb-3 ${isTop ? "text-white/50" : "text-text-tertiary"}`}>
-            Supporting Evidence
+            Essay Ideas for This Angle
           </p>
-          <ul className="flex flex-col gap-2">
-            {angle.evidence.map((e) => (
-              <li
-                key={e}
-                className={`flex items-start gap-2.5 text-sm ${isTop ? "text-white/80" : "text-text-secondary"}`}
-              >
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sage" />
-                {e}
+          <ul className="flex flex-col gap-3">
+            {angle.essay_prompts.map((prompt, i) => (
+              <li key={i} className={`flex items-start gap-3 rounded-xl p-4 ${isTop ? "bg-white/10" : "bg-background"}`}>
+                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                  isTop ? "bg-white/20 text-white" : "bg-border-soft text-text-secondary"
+                }`}>
+                  {i + 1}
+                </span>
+                <p className={`text-sm leading-relaxed ${isTop ? "text-white/85" : "text-text-secondary"}`}>
+                  {prompt}
+                </p>
               </li>
             ))}
           </ul>
         </div>
-
-        <div>
-          <p className={`text-xs font-semibold uppercase tracking-[0.12em] mb-3 ${isTop ? "text-white/50" : "text-text-tertiary"}`}>
-            Skills Demonstrated
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {angle.skills.map((s) => (
-              <span
-                key={s}
-                className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  isTop ? "bg-white/15 text-white" : "bg-background text-foreground"
-                }`}
-              >
-                {s}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Why it stands out */}
-      <div className={`mt-5 rounded-xl p-4 ${isTop ? "bg-white/10" : "bg-background"}`}>
+      <div className={`mt-4 rounded-xl p-4 ${isTop ? "bg-white/10" : "bg-background"}`}>
         <p className={`text-xs font-semibold uppercase tracking-[0.12em] mb-1.5 ${isTop ? "text-white/50" : "text-text-tertiary"}`}>
           Why It Stands Out
         </p>
@@ -186,28 +163,72 @@ function AngleCard({ angle, rank }: { angle: NarrativeAngle; rank: number }) {
         </p>
       </div>
 
-      {/* Essay prompts */}
-      {angle.essay_prompts?.length > 0 && (
-        <div className={`mt-4 rounded-xl p-5 ${isTop ? "bg-white/10" : "bg-background"}`}>
-          <p className={`text-xs font-semibold uppercase tracking-[0.12em] mb-3 ${isTop ? "text-white/50" : "text-text-tertiary"}`}>
-            Essay Ideas for This Angle
-          </p>
-          <ul className="flex flex-col gap-3">
-            {angle.essay_prompts.map((prompt, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
-                  isTop ? "bg-white/20 text-white" : "bg-border-soft text-text-secondary"
-                }`}>
-                  {i + 1}
-                </span>
-                <p className={`text-sm leading-relaxed ${isTop ? "text-white/80" : "text-text-secondary"}`}>
-                  {prompt}
+      {/* Collapsible: summary, evidence, skills */}
+      <div className="mt-4">
+        <button
+          onClick={() => setDetailsOpen((o) => !o)}
+          className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+            isTop
+              ? "bg-white/10 text-white/70 hover:bg-white/15"
+              : "bg-background text-text-secondary hover:bg-border-soft"
+          }`}
+        >
+          <span>Additional details</span>
+          <svg
+            viewBox="0 0 16 16"
+            className={`h-4 w-4 transition-transform duration-200 ${detailsOpen ? "rotate-180" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <polyline points="3,6 8,11 13,6" />
+          </svg>
+        </button>
+
+        {detailsOpen && (
+          <div className="mt-3 flex flex-col gap-4">
+            {/* Summary */}
+            <p className={`text-sm leading-relaxed px-1 ${isTop ? "text-white/80" : "text-text-secondary"}`}>
+              {angle.summary}
+            </p>
+
+            {/* Evidence + Skills */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className={`text-xs font-semibold uppercase tracking-[0.12em] mb-2 ${isTop ? "text-white/50" : "text-text-tertiary"}`}>
+                  Supporting Evidence
                 </p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+                <ul className="flex flex-col gap-2">
+                  {angle.evidence.map((e) => (
+                    <li key={e} className={`flex items-start gap-2.5 text-sm ${isTop ? "text-white/80" : "text-text-secondary"}`}>
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sage" />
+                      {e}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <p className={`text-xs font-semibold uppercase tracking-[0.12em] mb-2 ${isTop ? "text-white/50" : "text-text-tertiary"}`}>
+                  Skills Demonstrated
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {angle.skills.map((s) => (
+                    <span
+                      key={s}
+                      className={`rounded-full px-3 py-1 text-xs font-medium ${
+                        isTop ? "bg-white/15 text-white" : "bg-background text-foreground"
+                      }`}
+                    >
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
