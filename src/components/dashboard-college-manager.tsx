@@ -244,14 +244,7 @@ export function DashboardCollegeManager({
         </article>
       </section>
 
-      <section className="mt-5 grid gap-5 lg:grid-cols-2">
-        <article className="rounded-2xl border border-border-soft bg-white p-5">
-          <h3 className="text-lg font-semibold">Planning Docs</h3>
-          <button className="mt-4 inline-flex rounded-full border border-border-soft px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-ivory">
-            Add Doc
-          </button>
-        </article>
-
+      <section className="mt-5">
         <article className="rounded-2xl border border-border-soft bg-white p-5">
           <h3 className="text-lg font-semibold">Angle Analyzer Snapshot</h3>
           <p className="mt-2 text-sm text-text-secondary">Haven't found your angle yet.</p>

@@ -5,10 +5,6 @@ import { hasAnyProfileData } from "@/lib/profile";
 const navItems = [
   { label: "Dashboard", href: "/dashboard", key: "dashboard" },
   { label: "Angle Analyzer", href: "/analyzer", key: "analyzer" },
-  { label: "Essays", href: "/dashboard", key: "essays" },
-  { label: "College Research", href: "/dashboard", key: "research" },
-  { label: "Academic Profile", href: "/profile", key: "profile" },
-  { label: "Settings", href: "/dashboard", key: "settings" },
 ];
 
 export function Sidebar({
@@ -50,7 +46,7 @@ export function Sidebar({
             : "border border-red-200 bg-red-50 text-red-800 hover:bg-red-100"
         }`}
       >
-        {hasStartedProfile ? "View Full Profile Plan" : "Complete Your Profile"}
+        View Full Profile Plan
       </Link>
 
       <div className="mt-3 rounded-2xl border border-border-soft bg-white p-4">
@@ -58,16 +54,20 @@ export function Sidebar({
           Profile Snapshot
         </p>
         <p className="mt-2 text-sm text-text-secondary">
-          School: {profile.highSchool || "Not added"}
+          <span className="font-semibold text-foreground">School:</span>{" "}
+          {profile.highSchool || "Not added"}
         </p>
         <p className="mt-1 text-sm text-text-secondary">
-          Intended major: {profile.intendedMajors || "Not added"}
+          <span className="font-semibold text-foreground">Intended Major:</span>{" "}
+          {profile.intendedMajors || "Not added"}
         </p>
         <p className="mt-1 text-sm text-text-secondary">
-          Activities: {profile.activities.length} listed
+          <span className="font-semibold text-foreground">Activities:</span>{" "}
+          {profile.activities.length} listed
         </p>
         <p className="mt-1 text-sm text-text-secondary">
-          Awards: {profile.honors.length} listed
+          <span className="font-semibold text-foreground">Awards:</span>{" "}
+          {profile.honors.length} listed
         </p>
       </div>
     </aside>
