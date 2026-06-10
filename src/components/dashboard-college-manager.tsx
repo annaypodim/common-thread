@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type FormEvent, useEffect, useMemo, useState, useTransition } from "react";
+import { type FormEvent, useEffect, useState, useTransition } from "react";
 import type { CollegeRecord, SavedCollege } from "@/lib/colleges";
 
 type AddCollegeActionState = {
@@ -14,10 +14,16 @@ type RemoveCollegeActionState = {
   success?: boolean;
 };
 
+type SearchCollegeActionState = {
+  error?: string;
+  colleges?: CollegeRecord[];
+};
+
 type DashboardCollegeManagerProps = {
-  colleges: CollegeRecord[];
+  initialCollegeSuggestions: CollegeRecord[];
   initialSavedColleges: SavedCollege[];
   defaultIntendedMajor: string;
+  searchCollegeOptions: (query: string) => Promise<SearchCollegeActionState>;
   addCollegeAction: (formData: FormData) => Promise<AddCollegeActionState>;
   removeCollegeAction: (formData: FormData) => Promise<RemoveCollegeActionState>;
 };
@@ -30,97 +36,25 @@ function toTitleCase(str: string) {
   return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function getCollegeScore(query: string, college: CollegeRecord) {
-  const normalizedQuery = query.trim().toLowerCase();
-
-  if (!normalizedQuery) {
-    return -1;
-  }
-
-  const name = college.name.toLowerCase();
-  const state = college.state.toLowerCase();
-  const city = college.city.toLowerCase();
-  const combined = `${name} ${city} ${state}`;
-  const nameWords = name.split(/\s+/).filter(Boolean);
-  const cityWords = city.split(/\s+/).filter(Boolean);
-  const stateWords = state.split(/\s+/).filter(Boolean);
-
-  if (name === normalizedQuery) {
-    return 100;
-  }
-
-  if (name.startsWith(normalizedQuery)) {
-    return 90;
-  }
-
-  if (nameWords.some((word) => word.startsWith(normalizedQuery))) {
-    return 82;
-  }
-
-  if (name.includes(normalizedQuery)) {
-    return 65;
-  }
-
-  if (city.startsWith(normalizedQuery) || state.startsWith(normalizedQuery)) {
-    return 55;
-  }
-
-  if (cityWords.some((word) => word.startsWith(normalizedQuery)) || stateWords.some((word) => word.startsWith(normalizedQuery))) {
-    return 50;
-  }
-
-  const queryParts = normalizedQuery.split(/\s+/).filter(Boolean);
-  if (queryParts.every((part) => combined.includes(part))) {
-    return 45 - Math.max(0, name.indexOf(queryParts[0]) / 10);
-  }
-
-  return -1;
-}
-
-function findBestCollegeMatch(query: string, colleges: CollegeRecord[]) {
-  const normalizedQuery = query.trim();
-
-  if (!normalizedQuery) {
-    return null;
-  }
-
-  const scoredMatches = colleges
-    .map((college) => ({ college, score: getCollegeScore(normalizedQuery, college) }))
-    .filter((item) => item.score >= 0)
-    .sort((left, right) => right.score - left.score || left.college.name.localeCompare(right.college.name));
-
-  return scoredMatches[0]?.college ?? null;
-}
-
 export function DashboardCollegeManager({
-  colleges,
+  initialCollegeSuggestions,
   initialSavedColleges,
   defaultIntendedMajor,
+  searchCollegeOptions,
   addCollegeAction,
   removeCollegeAction,
 }: DashboardCollegeManagerProps) {
   const [savedColleges, setSavedColleges] = useState(initialSavedColleges);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState(initialCollegeSuggestions);
   const [selectedCollege, setSelectedCollege] = useState<CollegeRecord | null>(null);
   const [intendedMajor, setIntendedMajor] = useState(defaultIntendedMajor);
   const [toastMessage, setToastMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const [removingCollegeId, setRemovingCollegeId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  const suggestions = useMemo(() => {
-    if (!query.trim()) {
-      return colleges.slice(0, 8);
-    }
-
-    return colleges
-      .map((college) => ({ college, score: getCollegeScore(query, college) }))
-      .filter((item) => item.score >= 0)
-      .sort((left, right) => right.score - left.score || left.college.name.localeCompare(right.college.name))
-      .slice(0, 8)
-      .map((item) => item.college);
-  }, [colleges, query]);
 
   useEffect(() => {
     if (!toastMessage) {
@@ -131,10 +65,40 @@ export function DashboardCollegeManager({
     return () => window.clearTimeout(timeoutId);
   }, [toastMessage]);
 
+  useEffect(() => {
+    if (!isModalOpen) {
+      return;
+    }
+
+    let isCurrentSearch = true;
+    const timeoutId = window.setTimeout(async () => {
+      setIsSearching(true);
+      const result = await searchCollegeOptions(query);
+
+      if (!isCurrentSearch) {
+        return;
+      }
+
+      if (result.error) {
+        setErrorMessage(result.error);
+        setSuggestions([]);
+      } else {
+        setSuggestions(result.colleges ?? []);
+      }
+
+      setIsSearching(false);
+    }, 200);
+
+    return () => {
+      isCurrentSearch = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [isModalOpen, query, searchCollegeOptions]);
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const resolvedCollege = selectedCollege ?? findBestCollegeMatch(query, colleges);
+    const resolvedCollege = selectedCollege;
 
     if (!resolvedCollege) {
       setErrorMessage("No matching college found. Try a more specific search.");
@@ -247,7 +211,7 @@ export function DashboardCollegeManager({
       <section className="mt-5">
         <article className="rounded-2xl border border-border-soft bg-white p-5">
           <h3 className="text-lg font-semibold">Angle Analyzer Snapshot</h3>
-          <p className="mt-2 text-sm text-text-secondary">Haven't found your angle yet.</p>
+          <p className="mt-2 text-sm text-text-secondary">Haven&apos;t found your angle yet.</p>
           <Link
             href="/analyzer"
             className="mt-4 inline-flex rounded-full border border-border-soft px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-ivory"
@@ -323,13 +287,19 @@ export function DashboardCollegeManager({
                   className="mt-2 w-full rounded-2xl border border-border-soft px-4 py-3 text-sm outline-none transition-colors focus:border-forest"
                 />
                 <div className="mt-3 max-h-64 space-y-2 overflow-y-auto rounded-2xl border border-border-soft bg-ivory/40 p-2">
-                  {colleges.length === 0 && (
+                  {isSearching && (
+                    <div className="rounded-xl bg-white px-3 py-3 text-sm text-text-secondary">
+                      Searching colleges...
+                    </div>
+                  )}
+
+                  {!isSearching && suggestions.length === 0 && !query.trim() && (
                     <div className="rounded-xl bg-white px-3 py-3 text-sm text-text-secondary">
                       No colleges were loaded from Supabase yet. Check that the shared `colleges` table is readable.
                     </div>
                   )}
 
-                  {colleges.length > 0 && suggestions.length === 0 && query.trim() && (
+                  {!isSearching && suggestions.length === 0 && query.trim() && (
                     <div className="rounded-xl bg-white px-3 py-3 text-sm text-text-secondary">
                       No colleges match “{query}”. Try a shorter or broader search.
                     </div>

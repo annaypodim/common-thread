@@ -18,6 +18,7 @@ export type CollegeRecord = {
   state: string;
   zip: string;
   website: string;
+  aliases?: string[];
 };
 
 export type SavedCollege = {
@@ -31,35 +32,43 @@ export type SavedCollege = {
   website: string;
 };
 
-export async function getAllColleges(): Promise<CollegeRecord[]> {
+type SupabaseCollegeRow = {
+  name: string;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  website: string | null;
+  aliases?: string[] | null;
+};
+
+function mapCollege(row: SupabaseCollegeRow): CollegeRecord {
+  return {
+    name: row.name,
+    address: row.address ?? "",
+    city: row.city ?? "",
+    state: row.state ?? "",
+    zip: row.zip ?? "",
+    website: row.website ?? "",
+    aliases: row.aliases ?? [],
+  };
+}
+
+export async function searchColleges(query: string, limit = 8): Promise<CollegeRecord[]> {
   const supabase = await createClient();
-  const pageSize = 1000;
-  const allColleges: CollegeRecord[] = [];
-  let start = 0;
+  const normalizedQuery = query.trim();
+  const resultLimit = Math.max(1, Math.min(limit, 25));
 
-  while (true) {
-    const end = start + pageSize - 1;
-    const { data, error } = await supabase
-      .from("colleges")
-      .select("name, address, city, state, zip, website")
-      .order("name", { ascending: true })
-      .range(start, end);
+  const { data, error } = await supabase.rpc("search_colleges", {
+    search_query: normalizedQuery,
+    max_results: resultLimit,
+  });
 
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    const batch = (data as CollegeRecord[] | null) ?? [];
-    allColleges.push(...batch);
-
-    if (batch.length < pageSize) {
-      break;
-    }
-
-    start += pageSize;
+  if (error) {
+    throw new Error(error.message);
   }
 
-  return allColleges;
+  return ((data as SupabaseCollegeRow[] | null) ?? []).map(mapCollege);
 }
 
 export async function getUserSavedColleges(userId: string): Promise<SavedCollege[]> {
