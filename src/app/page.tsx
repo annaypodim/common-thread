@@ -128,7 +128,7 @@ export default async function Home() {
             <div className="flex flex-col gap-2 min-h-[220px]">
               <h4 className="text-base font-semibold text-foreground uppercase tracking-wide">Dashboard Structure</h4>
               <p className="mt-2 text-lg leading-relaxed text-text-secondary">
-                Manage all your college and summer program applications in one place. Keep track of deadlines, essays, and research without switching between tabs. Easily revisit past responses to refine your drafts, organize "Why This College" insights, and stay in control, even during the most overwhelming parts of application season.
+                Manage all your college and summer program applications in one place. Keep track of deadlines, essays, and research without switching between tabs. Easily revisit past responses to refine your drafts, organize &quot;Why This College&quot; insights, and stay in control, even during the most overwhelming parts of application season.
               </p>
             </div>
             <Link href={dashboardHref} className="group">
@@ -171,7 +171,7 @@ export default async function Home() {
             <div className="flex flex-col gap-2 min-h-[220px]">
               <h4 className="text-base font-semibold text-foreground uppercase tracking-wide">Narrative Analyzer</h4>
               <p className="mt-2 text-lg leading-relaxed text-text-secondary">
-                Discover the strongest way to frame your story. Based on your activities, projects, and interests, we help you identify compelling narrative angles tailored to each college or program. Instead of guessing what to emphasize, you'll have a clear, strategic direction for your entire application.
+                Discover the strongest way to frame your story. Based on your activities, projects, and interests, we help you identify compelling narrative angles tailored to each college or program. Instead of guessing what to emphasize, you&apos;ll have a clear, strategic direction for your entire application.
               </p>
             </div>
             <Link href={analyzerHref} className="group">

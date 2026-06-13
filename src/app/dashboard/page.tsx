@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
-import { getAllColleges, getMissingUserCollegesTableMessage, getUserSavedColleges } from "@/lib/colleges";
-import { getUserProfileData, hasAnyProfileData } from "@/lib/profile";
+import { getMissingUserCollegesTableMessage, getUserSavedColleges, searchColleges } from "@/lib/colleges";
+import { getUserProfileData } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { DashboardCollegeManager } from "@/components/dashboard-college-manager";
@@ -9,11 +9,22 @@ import { Sidebar } from "@/components/sidebar";
 export default async function Dashboard() {
   const user = await requireUser();
   const profile = await getUserProfileData(user.id);
-  const hasStartedProfile = hasAnyProfileData(profile);
-  const [allColleges, savedColleges] = await Promise.all([
-    getAllColleges(),
+  const [initialCollegeSuggestions, savedColleges] = await Promise.all([
+    searchColleges("", 8),
     getUserSavedColleges(user.id),
   ]);
+
+  async function searchCollegeOptions(query: string) {
+    "use server";
+
+    await requireUser();
+
+    try {
+      return { colleges: await searchColleges(query, 8) };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Unable to search colleges right now." };
+    }
+  }
 
   async function addCollege(formData: FormData) {
     "use server";
@@ -103,9 +114,10 @@ export default async function Dashboard() {
 
       <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
         <DashboardCollegeManager
-          colleges={allColleges}
+          initialCollegeSuggestions={initialCollegeSuggestions}
           initialSavedColleges={savedColleges}
           defaultIntendedMajor={profile.intendedMajors}
+          searchCollegeOptions={searchCollegeOptions}
           addCollegeAction={addCollege}
           removeCollegeAction={removeCollege}
         />
