@@ -2,18 +2,7 @@ import { requireUser } from "@/lib/auth";
 import { getUserProfileData, hasAnyProfileData } from "@/lib/profile";
 import { AnalyzerClient } from "@/components/analyzer-client";
 import { Sidebar } from "@/components/sidebar";
-import { createClient } from "@/lib/supabase/server";
-import type { AnalyzeResult } from "@/app/api/analyze/route";
-
-async function getSavedAnalysis(userId: string): Promise<AnalyzeResult | null> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("user_analyses")
-    .select("result")
-    .eq("user_id", userId)
-    .maybeSingle();
-  return (data?.result as AnalyzeResult) ?? null;
-}
+import { getSavedAnalysis } from "@/lib/analysis";
 
 export default async function Analyzer() {
   const user = await requireUser();

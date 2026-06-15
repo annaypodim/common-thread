@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { type FormEvent, useEffect, useState, useTransition } from "react";
 import type { CollegeRecord, SavedCollege } from "@/lib/colleges";
+import type { NarrativeAngle } from "@/app/api/analyze/route";
 
 type AddCollegeActionState = {
   error?: string;
@@ -23,6 +24,7 @@ type DashboardCollegeManagerProps = {
   initialCollegeSuggestions: CollegeRecord[];
   initialSavedColleges: SavedCollege[];
   defaultIntendedMajor: string;
+  topAngle: NarrativeAngle | null;
   searchCollegeOptions: (query: string) => Promise<SearchCollegeActionState>;
   addCollegeAction: (formData: FormData) => Promise<AddCollegeActionState>;
   removeCollegeAction: (formData: FormData) => Promise<RemoveCollegeActionState>;
@@ -40,6 +42,7 @@ export function DashboardCollegeManager({
   initialCollegeSuggestions,
   initialSavedColleges,
   defaultIntendedMajor,
+  topAngle,
   searchCollegeOptions,
   addCollegeAction,
   removeCollegeAction,
@@ -210,14 +213,50 @@ export function DashboardCollegeManager({
 
       <section className="mt-5">
         <article className="rounded-2xl border border-border-soft bg-white p-5">
-          <h3 className="text-lg font-semibold">Angle Analyzer Snapshot</h3>
-          <p className="mt-2 text-sm text-text-secondary">Haven&apos;t found your angle yet.</p>
-          <Link
-            href="/analyzer"
-            className="mt-4 inline-flex rounded-full border border-border-soft px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-ivory"
-          >
-            Open Angle Analyzer
-          </Link>
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-lg font-semibold">Angle Analyzer Snapshot</h3>
+            {topAngle && (
+              <span className="shrink-0 rounded-full bg-background px-3 py-0.5 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                Strongest Angle
+              </span>
+            )}
+          </div>
+
+          {topAngle ? (
+            <>
+              <h4 className="mt-3 font-serif text-xl font-semibold text-foreground">
+                {topAngle.title}
+              </h4>
+              {topAngle.major_connection && (
+                <div className="mt-2 inline-flex items-center rounded-full border border-sage/25 bg-sage/10 px-3 py-1">
+                  <span className="text-sm font-semibold text-forest">
+                    {topAngle.major_connection}
+                  </span>
+                </div>
+              )}
+              {topAngle.standout_reason && (
+                <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+                  {topAngle.standout_reason}
+                </p>
+              )}
+              <Link
+                href="/analyzer"
+                className="mt-4 inline-flex rounded-full border border-border-soft px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-ivory"
+              >
+                View full analysis
+              </Link>
+            </>
+          ) : (
+            <>
+              <p className="mt-2 text-sm text-text-secondary">Haven&apos;t found your angle yet.</p>
+              <Link
+                href="/analyzer"
+                className="mt-4 inline-flex rounded-full border border-border-soft px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-ivory"
+              >
+                Open Angle Analyzer
+              </Link>
+            </>
+          )}
         </article>
       </section>
 
