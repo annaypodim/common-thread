@@ -1,7 +1,8 @@
 import { requireUser } from "@/lib/auth";
 import { getMissingUserCollegesTableMessage, getUserSavedColleges, searchColleges } from "@/lib/colleges";
 import { getMissingDeadlinesTableMessage, getUserDeadlines } from "@/lib/deadlines";
-import { lookupCollegeDeadlines } from "@/lib/deadline-lookup";
+import { cacheKey, getCachedDeadlinesByName, getCollegeDeadlineSuggestions } from "@/lib/deadline-cache";
+import type { DeadlineSuggestion } from "@/lib/deadline-lookup";
 import { getUserProfileData } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -16,6 +17,15 @@ export default async function Dashboard() {
     getUserSavedColleges(user.id),
     getUserDeadlines(user.id),
   ]);
+
+  // Seed already-cached rounds so the dashboard shows them instantly without a
+  // client-side web search. Keyed by saved-college id for the component.
+  const cachedByName = await getCachedDeadlinesByName(savedColleges.map((c) => c.collegeName));
+  const initialDeadlineSuggestions: Record<string, DeadlineSuggestion[]> = {};
+  for (const c of savedColleges) {
+    const rounds = cachedByName[cacheKey(c.collegeName)];
+    if (rounds) initialDeadlineSuggestions[c.id] = rounds;
+  }
 
   async function searchCollegeOptions(query: string) {
     "use server";
@@ -121,7 +131,7 @@ export default async function Dashboard() {
     }
 
     try {
-      return { deadlines: await lookupCollegeDeadlines(collegeName) };
+      return { deadlines: await getCollegeDeadlineSuggestions(collegeName) };
     } catch (error) {
       console.error("Deadline lookup error:", error);
       return { error: "Could not look up deadlines right now. Try adding one manually." };
@@ -214,6 +224,7 @@ export default async function Dashboard() {
           initialCollegeSuggestions={initialCollegeSuggestions}
           initialSavedColleges={savedColleges}
           initialDeadlines={savedDeadlines}
+          initialDeadlineSuggestions={initialDeadlineSuggestions}
           defaultIntendedMajor={profile.intendedMajors}
           searchCollegeOptions={searchCollegeOptions}
           addCollegeAction={addCollege}

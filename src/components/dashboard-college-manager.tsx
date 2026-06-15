@@ -28,6 +28,7 @@ type DashboardCollegeManagerProps = {
   initialCollegeSuggestions: CollegeRecord[];
   initialSavedColleges: SavedCollege[];
   initialDeadlines: CollegeDeadline[];
+  initialDeadlineSuggestions: Record<string, DeadlineSuggestion[]>;
   defaultIntendedMajor: string;
   searchCollegeOptions: (query: string) => Promise<SearchCollegeActionState>;
   addCollegeAction: (formData: FormData) => Promise<AddCollegeActionState>;
@@ -55,6 +56,7 @@ export function DashboardCollegeManager({
   initialCollegeSuggestions,
   initialSavedColleges,
   initialDeadlines,
+  initialDeadlineSuggestions,
   defaultIntendedMajor,
   searchCollegeOptions,
   addCollegeAction,
@@ -222,6 +224,7 @@ export function DashboardCollegeManager({
           className="xl:col-span-2"
           savedColleges={savedColleges}
           initialDeadlines={initialDeadlines}
+          initialSuggestions={initialDeadlineSuggestions}
           lookupDeadlinesAction={lookupDeadlinesAction}
           saveDeadlineAction={saveDeadlineAction}
           removeDeadlineAction={removeDeadlineAction}

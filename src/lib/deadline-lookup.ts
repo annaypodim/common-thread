@@ -91,7 +91,7 @@ export async function lookupCollegeDeadlines(
         role: "user",
         content: `Today's date is ${today}. Find the undergraduate application deadlines for "${collegeName}" for the NEXT upcoming admissions cycle (the deadlines a student applying now would face). Search the college's official admissions website for current dates.
 
-Include each applicable round: Early Decision, Early Decision II, Early Action, Restrictive/Single-Choice Early Action, and Regular Decision. Only include rounds this college actually offers. Use the exact calendar dates published for the upcoming cycle. If only the prior year's date is available, estimate the upcoming date based on the college's consistent pattern and keep the label.
+Include ONLY first-year application SUBMISSION deadlines for these rounds: Early Decision, Early Decision II, Early Action, Restrictive/Single-Choice Early Action, and Regular Decision. Only include rounds this college actually offers. Do NOT include financial aid deadlines, scholarship deadlines, decision release/notification dates, reply/enrollment-deposit dates, transfer deadlines, or housing dates. Use the exact calendar dates published for the upcoming cycle. If only the prior year's date is available, estimate the upcoming date based on the college's consistent pattern and keep the label.
 
 For "source_url", you MUST copy the exact URL of a page you actually opened in your web search that shows this deadline. Do not shorten, guess, or construct a URL. Prefer the college's own official (.edu) admissions/deadlines page. If none of the pages you opened confirm a given deadline, use an empty string for its source_url.
 
