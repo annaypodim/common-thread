@@ -1,5 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { getMissingUserCollegesTableMessage, getUserSavedColleges, searchColleges } from "@/lib/colleges";
+import { getMissingDeadlinesTableMessage, getUserDeadlines } from "@/lib/deadlines";
+import { lookupCollegeDeadlines } from "@/lib/deadline-lookup";
 import { getUserProfileData } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -9,9 +11,10 @@ import { Sidebar } from "@/components/sidebar";
 export default async function Dashboard() {
   const user = await requireUser();
   const profile = await getUserProfileData(user.id);
-  const [initialCollegeSuggestions, savedColleges] = await Promise.all([
+  const [initialCollegeSuggestions, savedColleges, savedDeadlines] = await Promise.all([
     searchColleges("", 8),
     getUserSavedColleges(user.id),
+    getUserDeadlines(user.id),
   ]);
 
   async function searchCollegeOptions(query: string) {
@@ -108,6 +111,96 @@ export default async function Dashboard() {
     return { success: true };
   }
 
+  async function lookupDeadlines(collegeName: string) {
+    "use server";
+
+    await requireUser();
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return { error: "Deadline lookup is not configured." };
+    }
+
+    try {
+      return { deadlines: await lookupCollegeDeadlines(collegeName) };
+    } catch (error) {
+      console.error("Deadline lookup error:", error);
+      return { error: "Could not look up deadlines right now. Try adding one manually." };
+    }
+  }
+
+  async function saveDeadline(formData: FormData) {
+    "use server";
+
+    const currentUser = await requireUser();
+    const supabase = await createClient();
+
+    const userCollegeId = String(formData.get("userCollegeId") ?? "").trim();
+    const collegeName = String(formData.get("collegeName") ?? "").trim();
+    const label = String(formData.get("label") ?? "").trim();
+    const dueDate = String(formData.get("dueDate") ?? "").trim();
+
+    if (!userCollegeId || !collegeName || !label || !dueDate) {
+      return { error: "A college, label, and date are all required." };
+    }
+
+    const { data, error } = await supabase
+      .from("user_college_deadlines")
+      .upsert(
+        {
+          user_id: currentUser.id,
+          user_college_id: userCollegeId,
+          college_name: collegeName,
+          label,
+          due_date: dueDate,
+        },
+        { onConflict: "user_college_id,label,due_date" }
+      )
+      .select("id, user_college_id, college_name, label, due_date")
+      .single();
+
+    if (error) {
+      return { error: getMissingDeadlinesTableMessage(error.message) };
+    }
+
+    revalidatePath("/dashboard");
+
+    return {
+      deadline: {
+        id: data.id,
+        userCollegeId: data.user_college_id,
+        collegeName: data.college_name,
+        label: data.label,
+        dueDate: data.due_date,
+      },
+    };
+  }
+
+  async function removeDeadline(formData: FormData) {
+    "use server";
+
+    const currentUser = await requireUser();
+    const supabase = await createClient();
+    const deadlineId = String(formData.get("deadlineId") ?? "").trim();
+
+    if (!deadlineId) {
+      return { error: "Deadline could not be removed. Missing record id." };
+    }
+
+    const { error } = await supabase
+      .from("user_college_deadlines")
+      .delete()
+      .eq("id", deadlineId)
+      .eq("user_id", currentUser.id);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath("/dashboard");
+
+    return { success: true };
+  }
+
   return (
     <div className="flex flex-1 bg-ivory text-foreground">
       <Sidebar activePage="dashboard" profile={profile} />
@@ -116,10 +209,14 @@ export default async function Dashboard() {
         <DashboardCollegeManager
           initialCollegeSuggestions={initialCollegeSuggestions}
           initialSavedColleges={savedColleges}
+          initialDeadlines={savedDeadlines}
           defaultIntendedMajor={profile.intendedMajors}
           searchCollegeOptions={searchCollegeOptions}
           addCollegeAction={addCollege}
           removeCollegeAction={removeCollege}
+          lookupDeadlinesAction={lookupDeadlines}
+          saveDeadlineAction={saveDeadline}
+          removeDeadlineAction={removeDeadline}
         />
       </main>
     </div>
