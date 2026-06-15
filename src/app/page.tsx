@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { BottomBanner } from "@/components/bottom-banner";
 
 function CheckIcon({ delay }: { delay: string }) {
   return (
@@ -243,19 +244,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="w-full bg-forest mt-auto">
-        <div className="max-w-5xl mx-auto px-6 sm:px-10 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="text-base text-white/50">
-            &copy; 2026 common thread
-          </span>
-          <div className="flex gap-6 text-base text-white/50">
-            <Link href="#" className="hover:text-white transition-colors">privacy</Link>
-            <Link href="#" className="hover:text-white transition-colors">terms</Link>
-            <Link href="#" className="hover:text-white transition-colors">contact</Link>
-          </div>
-        </div>
-      </footer>
+      <BottomBanner />
     </div>
   );
 }
