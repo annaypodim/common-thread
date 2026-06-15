@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import type { CollegeDeadline } from "@/lib/deadlines";
 import type { SavedCollege } from "@/lib/colleges";
 
-export type DeadlineSuggestion = { label: string; due_date: string };
+export type DeadlineSuggestion = { label: string; due_date: string; source_url: string };
 
 type LookupActionState = { error?: string; deadlines?: DeadlineSuggestion[] };
 type SaveActionState = { error?: string; deadline?: CollegeDeadline };
@@ -93,12 +93,19 @@ export function UpcomingDeadlines({
 
   const selectedCollege = savedColleges.find((c) => c.id === selectedCollegeId) ?? null;
 
-  function persist(userCollegeId: string, collegeName: string, label: string, dueDate: string) {
+  function persist(
+    userCollegeId: string,
+    collegeName: string,
+    label: string,
+    dueDate: string,
+    sourceUrl = ""
+  ) {
     const formData = new FormData();
     formData.set("userCollegeId", userCollegeId);
     formData.set("collegeName", collegeName);
     formData.set("label", label);
     formData.set("dueDate", dueDate);
+    formData.set("sourceUrl", sourceUrl);
 
     startSave(async () => {
       const result = await saveDeadlineAction(formData);
@@ -205,7 +212,20 @@ export function UpcomingDeadlines({
                   {toTitleCase(deadline.collegeName)}
                 </p>
                 <p className="truncate text-xs text-text-secondary">
-                  {deadline.label} &middot; {formatDueDate(deadline.dueDate)}
+                  {deadline.label} &middot;{" "}
+                  {deadline.sourceUrl ? (
+                    <a
+                      href={deadline.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Verify on the official admissions site"
+                      className="font-medium text-forest underline underline-offset-2 hover:text-forest-light"
+                    >
+                      {formatDueDate(deadline.dueDate)} ↗
+                    </a>
+                  ) : (
+                    formatDueDate(deadline.dueDate)
+                  )}
                 </p>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -267,24 +287,43 @@ export function UpcomingDeadlines({
 
           {suggestions.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-text-secondary">Found — tap to add:</p>
+              <p className="text-xs font-medium text-text-secondary">
+                Found — tap the date to verify, then add:
+              </p>
               {suggestions.map((s) => (
-                <button
+                <div
                   key={`${s.label}-${s.due_date}`}
-                  type="button"
-                  onClick={() =>
-                    selectedCollege &&
-                    persist(selectedCollege.id, selectedCollege.collegeName, s.label, s.due_date)
-                  }
-                  disabled={isSaving}
-                  className="flex w-full items-center justify-between gap-2 rounded-xl border border-border-soft bg-white px-3 py-2 text-left text-sm transition-colors hover:bg-ivory disabled:opacity-60"
+                  className="flex items-center justify-between gap-2 rounded-xl border border-border-soft bg-white px-3 py-2"
                 >
-                  <span className="min-w-0 truncate">
-                    <span className="font-medium text-foreground">{s.label}</span>
-                    <span className="text-text-secondary"> · {formatDueDate(s.due_date)}</span>
+                  <span className="min-w-0 truncate text-sm">
+                    <span className="font-medium text-foreground">{s.label}</span>{" "}
+                    <span className="text-text-secondary">· </span>
+                    {s.source_url ? (
+                      <a
+                        href={s.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Verify on the official admissions site"
+                        className="font-medium text-forest underline underline-offset-2 hover:text-forest-light"
+                      >
+                        {formatDueDate(s.due_date)} ↗
+                      </a>
+                    ) : (
+                      <span className="text-text-secondary">{formatDueDate(s.due_date)}</span>
+                    )}
                   </span>
-                  <span className="shrink-0 text-forest">+ Add</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectedCollege &&
+                      persist(selectedCollege.id, selectedCollege.collegeName, s.label, s.due_date, s.source_url)
+                    }
+                    disabled={isSaving}
+                    className="shrink-0 text-sm font-medium text-forest hover:text-forest-light disabled:opacity-60"
+                  >
+                    + Add
+                  </button>
+                </div>
               ))}
             </div>
           )}

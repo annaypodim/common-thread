@@ -7,10 +7,15 @@ create table if not exists public.user_college_deadlines (
   college_name text not null,
   label text not null,
   due_date date not null,
+  source_url text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (user_college_id, label, due_date)
 );
+
+-- Official page the date was sourced from, so students can verify it.
+alter table public.user_college_deadlines
+add column if not exists source_url text;
 
 create index if not exists user_college_deadlines_user_id_idx
   on public.user_college_deadlines(user_id);

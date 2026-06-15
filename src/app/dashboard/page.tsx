@@ -138,6 +138,8 @@ export default async function Dashboard() {
     const collegeName = String(formData.get("collegeName") ?? "").trim();
     const label = String(formData.get("label") ?? "").trim();
     const dueDate = String(formData.get("dueDate") ?? "").trim();
+    const rawSourceUrl = String(formData.get("sourceUrl") ?? "").trim();
+    const sourceUrl = /^https?:\/\//i.test(rawSourceUrl) ? rawSourceUrl : "";
 
     if (!userCollegeId || !collegeName || !label || !dueDate) {
       return { error: "A college, label, and date are all required." };
@@ -152,10 +154,11 @@ export default async function Dashboard() {
           college_name: collegeName,
           label,
           due_date: dueDate,
+          source_url: sourceUrl || null,
         },
         { onConflict: "user_college_id,label,due_date" }
       )
-      .select("id, user_college_id, college_name, label, due_date")
+      .select("id, user_college_id, college_name, label, due_date, source_url")
       .single();
 
     if (error) {
@@ -171,6 +174,7 @@ export default async function Dashboard() {
         collegeName: data.college_name,
         label: data.label,
         dueDate: data.due_date,
+        sourceUrl: data.source_url ?? "",
       },
     };
   }
