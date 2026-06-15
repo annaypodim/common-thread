@@ -53,13 +53,14 @@ const sections = [
       "Some features may use third-party AI providers to generate feedback and recommendations.",
       "Information submitted to AI-powered features may be processed by these providers solely for the purpose of generating responses requested by you.",
       "We strive to minimize data shared with third-party AI providers whenever possible.",
+      "Your data is never shared with other users of the platform.",
     ],
   },
   {
     title: "Data Storage",
     body: [
       "User data is stored using secure cloud infrastructure and database providers.",
-      "We take reasonable measures to protect user information, but no online service can guarantee absolute security.",
+      "We take measures to protect user information, but no online service can guarantee absolute security.",
     ],
   },
   {
