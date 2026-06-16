@@ -19,7 +19,14 @@ export async function requireUser() {
 
 export async function signInWithGoogle() {
   const supabase = await createClient();
-  const origin = (await headers()).get("origin");
+
+  // Prefer an explicit, configured site URL so the redirect_to we send to
+  // Supabase always matches the allow-list (the request `origin` header is
+  // unreliable behind Vercel's proxy / custom domains). Fall back to the
+  // request origin for local dev where the env var isn't set.
+  const headerList = await headers();
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL ?? headerList.get("origin") ?? "";
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",

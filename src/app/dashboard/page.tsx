@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { DashboardCollegeManager } from "@/components/dashboard-college-manager";
 import { Sidebar } from "@/components/sidebar";
+import { BottomBanner } from "@/components/bottom-banner";
 
 export default async function Dashboard() {
   const user = await requireUser();
@@ -216,24 +217,27 @@ export default async function Dashboard() {
   }
 
   return (
-    <div className="flex flex-1 bg-ivory text-foreground">
-      <Sidebar activePage="dashboard" profile={profile} />
+    <div className="flex flex-1 flex-col bg-ivory text-foreground">
+      <div className="flex flex-1">
+        <Sidebar activePage="dashboard" profile={profile} />
 
-      <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
-        <DashboardCollegeManager
-          initialCollegeSuggestions={initialCollegeSuggestions}
-          initialSavedColleges={savedColleges}
-          initialDeadlines={savedDeadlines}
-          initialDeadlineSuggestions={initialDeadlineSuggestions}
-          defaultIntendedMajor={profile.intendedMajors}
-          searchCollegeOptions={searchCollegeOptions}
-          addCollegeAction={addCollege}
-          removeCollegeAction={removeCollege}
-          lookupDeadlinesAction={lookupDeadlines}
-          saveDeadlineAction={saveDeadline}
-          removeDeadlineAction={removeDeadline}
-        />
-      </main>
+        <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
+          <DashboardCollegeManager
+            initialCollegeSuggestions={initialCollegeSuggestions}
+            initialSavedColleges={savedColleges}
+            initialDeadlines={savedDeadlines}
+            initialDeadlineSuggestions={initialDeadlineSuggestions}
+            defaultIntendedMajor={profile.intendedMajors}
+            searchCollegeOptions={searchCollegeOptions}
+            addCollegeAction={addCollege}
+            removeCollegeAction={removeCollege}
+            lookupDeadlinesAction={lookupDeadlines}
+            saveDeadlineAction={saveDeadline}
+            removeDeadlineAction={removeDeadline}
+          />
+        </main>
+      </div>
+      <BottomBanner />
     </div>
   );
 }
