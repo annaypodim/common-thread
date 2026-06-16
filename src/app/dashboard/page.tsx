@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { getMissingUserCollegesTableMessage, getUserSavedColleges, searchColleges } from "@/lib/colleges";
 import { getUserProfileData } from "@/lib/profile";
-import { getTopAngle } from "@/lib/analysis";
+import { getSavedAnalysis } from "@/lib/analysis";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { DashboardCollegeManager } from "@/components/dashboard-college-manager";
@@ -10,10 +10,10 @@ import { Sidebar } from "@/components/sidebar";
 export default async function Dashboard() {
   const user = await requireUser();
   const profile = await getUserProfileData(user.id);
-  const [initialCollegeSuggestions, savedColleges, topAngle] = await Promise.all([
+  const [initialCollegeSuggestions, savedColleges, savedAnalysis] = await Promise.all([
     searchColleges("", 8),
     getUserSavedColleges(user.id),
-    getTopAngle(user.id),
+    getSavedAnalysis(user.id),
   ]);
 
   async function searchCollegeOptions(query: string) {
@@ -119,7 +119,7 @@ export default async function Dashboard() {
           initialCollegeSuggestions={initialCollegeSuggestions}
           initialSavedColleges={savedColleges}
           defaultIntendedMajor={profile.intendedMajors}
-          topAngle={topAngle}
+          savedAnalysis={savedAnalysis}
           searchCollegeOptions={searchCollegeOptions}
           addCollegeAction={addCollege}
           removeCollegeAction={removeCollege}
