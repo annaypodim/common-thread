@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { type FormEvent, useEffect, useState, useTransition } from "react";
 import type { CollegeRecord, SavedCollege } from "@/lib/colleges";
+import type { CollegeDeadline } from "@/lib/deadlines";
+import {
+  UpcomingDeadlines,
+  type DeadlineSuggestion,
+} from "@/components/upcoming-deadlines";
 
 type AddCollegeActionState = {
   error?: string;
@@ -22,10 +27,21 @@ type SearchCollegeActionState = {
 type DashboardCollegeManagerProps = {
   initialCollegeSuggestions: CollegeRecord[];
   initialSavedColleges: SavedCollege[];
+  initialDeadlines: CollegeDeadline[];
+  initialDeadlineSuggestions: Record<string, DeadlineSuggestion[]>;
   defaultIntendedMajor: string;
   searchCollegeOptions: (query: string) => Promise<SearchCollegeActionState>;
   addCollegeAction: (formData: FormData) => Promise<AddCollegeActionState>;
   removeCollegeAction: (formData: FormData) => Promise<RemoveCollegeActionState>;
+  lookupDeadlinesAction: (
+    collegeName: string
+  ) => Promise<{ error?: string; deadlines?: DeadlineSuggestion[] }>;
+  saveDeadlineAction: (
+    formData: FormData
+  ) => Promise<{ error?: string; deadline?: CollegeDeadline }>;
+  removeDeadlineAction: (
+    formData: FormData
+  ) => Promise<{ error?: string; success?: boolean }>;
 };
 
 function slugifyCollege(name: string) {
@@ -39,10 +55,15 @@ function toTitleCase(str: string) {
 export function DashboardCollegeManager({
   initialCollegeSuggestions,
   initialSavedColleges,
+  initialDeadlines,
+  initialDeadlineSuggestions,
   defaultIntendedMajor,
   searchCollegeOptions,
   addCollegeAction,
   removeCollegeAction,
+  lookupDeadlinesAction,
+  saveDeadlineAction,
+  removeDeadlineAction,
 }: DashboardCollegeManagerProps) {
   const [savedColleges, setSavedColleges] = useState(initialSavedColleges);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -165,8 +186,8 @@ export function DashboardCollegeManager({
 
   return (
     <>
-      <section className="mt-4 grid gap-5 xl:grid-cols-3">
-        <article className="rounded-2xl border border-border-soft bg-white p-5 xl:col-span-2">
+      <section className="mt-4 grid gap-5 xl:grid-cols-5">
+        <article className="rounded-2xl border border-border-soft bg-white p-5 xl:col-span-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h3 className="text-lg font-semibold">Active Applications</h3>
@@ -199,13 +220,15 @@ export function DashboardCollegeManager({
           </div>
         </article>
 
-        <article className="rounded-2xl border border-border-soft bg-white p-5">
-          <h3 className="text-lg font-semibold">Upcoming Deadlines</h3>
-          <p className="mt-1 text-sm text-text-secondary">Your calendar organization updates as you add colleges.</p>
-          <div className="mt-4 rounded-xl border border-dashed border-border-soft bg-ivory/50 p-3 text-sm text-text-secondary">
-            Deadline tracking will appear here as you build out each college workspace.
-          </div>
-        </article>
+        <UpcomingDeadlines
+          className="xl:col-span-2"
+          savedColleges={savedColleges}
+          initialDeadlines={initialDeadlines}
+          initialSuggestions={initialDeadlineSuggestions}
+          lookupDeadlinesAction={lookupDeadlinesAction}
+          saveDeadlineAction={saveDeadlineAction}
+          removeDeadlineAction={removeDeadlineAction}
+        />
       </section>
 
       <section className="mt-5">
