@@ -4,6 +4,7 @@ import { getMissingDeadlinesTableMessage, getUserDeadlines } from "@/lib/deadlin
 import { cacheKey, getCachedDeadlinesByName, getCollegeDeadlineSuggestions } from "@/lib/deadline-cache";
 import type { DeadlineSuggestion } from "@/lib/deadline-lookup";
 import { getUserProfileData } from "@/lib/profile";
+import { getSavedAnalysis } from "@/lib/analysis";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { DashboardCollegeManager } from "@/components/dashboard-college-manager";
@@ -13,9 +14,10 @@ import { BottomBanner } from "@/components/bottom-banner";
 export default async function Dashboard() {
   const user = await requireUser();
   const profile = await getUserProfileData(user.id);
-  const [initialCollegeSuggestions, savedColleges, savedDeadlines] = await Promise.all([
+  const [initialCollegeSuggestions, savedColleges, savedAnalysis, savedDeadlines] = await Promise.all([
     searchColleges("", 8),
     getUserSavedColleges(user.id),
+    getSavedAnalysis(user.id),
     getUserDeadlines(user.id),
   ]);
 
@@ -228,6 +230,7 @@ export default async function Dashboard() {
             initialDeadlines={savedDeadlines}
             initialDeadlineSuggestions={initialDeadlineSuggestions}
             defaultIntendedMajor={profile.intendedMajors}
+            savedAnalysis={savedAnalysis}
             searchCollegeOptions={searchCollegeOptions}
             addCollegeAction={addCollege}
             removeCollegeAction={removeCollege}

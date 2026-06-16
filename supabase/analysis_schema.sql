@@ -7,14 +7,18 @@ create table if not exists user_analyses (
 
 alter table user_analyses enable row level security;
 
+drop policy if exists "Users can read own analysis" on user_analyses;
 create policy "Users can read own analysis"
   on user_analyses for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can upsert own analysis" on user_analyses;
 create policy "Users can upsert own analysis"
   on user_analyses for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update own analysis" on user_analyses;
 create policy "Users can update own analysis"
   on user_analyses for update
-  using (auth.uid() = user_id);
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);

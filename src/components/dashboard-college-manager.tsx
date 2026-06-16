@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { type FormEvent, useEffect, useState, useTransition } from "react";
 import type { CollegeRecord, SavedCollege } from "@/lib/colleges";
+import type { AnalyzeResult } from "@/app/api/analyze/route";
+import { DashboardAngleAnalyzer } from "@/components/dashboard-angle-analyzer";
 import type { CollegeDeadline } from "@/lib/deadlines";
 import {
   UpcomingDeadlines,
@@ -30,6 +32,7 @@ type DashboardCollegeManagerProps = {
   initialDeadlines: CollegeDeadline[];
   initialDeadlineSuggestions: Record<string, DeadlineSuggestion[]>;
   defaultIntendedMajor: string;
+  savedAnalysis: AnalyzeResult | null;
   searchCollegeOptions: (query: string) => Promise<SearchCollegeActionState>;
   addCollegeAction: (formData: FormData) => Promise<AddCollegeActionState>;
   removeCollegeAction: (formData: FormData) => Promise<RemoveCollegeActionState>;
@@ -58,6 +61,7 @@ export function DashboardCollegeManager({
   initialDeadlines,
   initialDeadlineSuggestions,
   defaultIntendedMajor,
+  savedAnalysis,
   searchCollegeOptions,
   addCollegeAction,
   removeCollegeAction,
@@ -232,16 +236,7 @@ export function DashboardCollegeManager({
       </section>
 
       <section className="mt-5">
-        <article className="rounded-2xl border border-border-soft bg-white p-5">
-          <h3 className="text-lg font-semibold">Angle Analyzer Snapshot</h3>
-          <p className="mt-2 text-sm text-text-secondary">Haven&apos;t found your angle yet.</p>
-          <Link
-            href="/analyzer"
-            className="mt-4 inline-flex rounded-full border border-border-soft px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-ivory"
-          >
-            Open Angle Analyzer
-          </Link>
-        </article>
+        <DashboardAngleAnalyzer savedResult={savedAnalysis} />
       </section>
 
       <section className="mt-5 rounded-2xl border border-border-soft bg-white p-5">

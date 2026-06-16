@@ -234,10 +234,14 @@ export async function POST() {
       analyzed_at: new Date().toISOString(),
     };
 
-    await supabase.from("user_analyses").upsert(
+    const { error: saveError } = await supabase.from("user_analyses").upsert(
       { user_id: user.id, result, analyzed_at: result.analyzed_at },
       { onConflict: "user_id" }
     );
+
+    if (saveError) {
+      console.error("Failed to persist analysis result:", saveError);
+    }
 
     return NextResponse.json(result);
   } catch (err) {
