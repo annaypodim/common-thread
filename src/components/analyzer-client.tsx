@@ -13,7 +13,7 @@ const STEPS = [
 
 function ProfileSummaryCard({ profile }: { profile: UserProfileData }) {
   return (
-    <div className="rounded-2xl border border-border-soft bg-white p-6">
+    <div className="min-w-0 rounded-2xl border border-border-soft bg-white p-4 sm:p-6">
       <p className="text-xs font-semibold uppercase tracking-[0.15em] text-text-tertiary">
         What we&rsquo;ll analyze
       </p>
@@ -30,8 +30,8 @@ function ProfileSummaryCard({ profile }: { profile: UserProfileData }) {
           </p>
           <p className="mt-0.5 text-sm text-text-secondary">Honors & Awards</p>
         </div>
-        <div className="col-span-2">
-          <p className="text-sm font-medium text-foreground truncate">
+        <div className="col-span-2 min-w-0">
+          <p className="break-words text-sm font-medium text-foreground sm:truncate">
             {profile.intendedMajors || (
               <span className="text-text-tertiary italic">No major listed</span>
             )}
@@ -99,7 +99,7 @@ function AngleCard({ angle, rank }: { angle: NarrativeAngle; rank: number }) {
 
   return (
     <div
-      className={`rounded-2xl px-5 py-6 ${
+      className={`min-w-0 rounded-2xl px-4 py-5 sm:px-5 sm:py-6 ${
         isTop ? "bg-forest text-white" : "border border-border-soft bg-white"
       }`}
     >
@@ -114,7 +114,7 @@ function AngleCard({ angle, rank }: { angle: NarrativeAngle; rank: number }) {
 
       {/* Title */}
       <h3
-        className={`text-2xl font-semibold font-serif ${
+        className={`break-words text-2xl font-semibold font-serif ${
           isTop ? "text-white" : "text-foreground"
         }`}
       >
@@ -122,10 +122,10 @@ function AngleCard({ angle, rank }: { angle: NarrativeAngle; rank: number }) {
       </h3>
 
       {/* Major pill */}
-      <div className={`mt-3 inline-flex items-center rounded-full px-4 py-1.5 ${
+      <div className={`mt-3 flex max-w-full items-center rounded-2xl px-4 py-1.5 sm:inline-flex sm:rounded-full ${
         isTop ? "bg-white/15 border border-white/25" : "bg-sage/10 border border-sage/25"
       }`}>
-        <span className={`text-sm font-semibold ${isTop ? "text-white" : "text-forest"}`}>
+        <span className={`min-w-0 break-words text-sm font-semibold ${isTop ? "text-white" : "text-forest"}`}>
           {angle.major_connection}
         </span>
       </div>
@@ -144,7 +144,7 @@ function AngleCard({ angle, rank }: { angle: NarrativeAngle; rank: number }) {
                 }`}>
                   {i + 1}
                 </span>
-                <p className={`text-sm leading-relaxed ${isTop ? "text-white/85" : "text-text-secondary"}`}>
+                <p className={`min-w-0 break-words text-sm leading-relaxed ${isTop ? "text-white/85" : "text-text-secondary"}`}>
                   {prompt}
                 </p>
               </li>
@@ -302,10 +302,10 @@ export function AnalyzerClient({
     : null;
 
   return (
-    <div className="px-4 py-10 sm:px-8 lg:px-16">
-      <div className="mx-auto max-w-3xl">
+    <div className="min-w-0 px-4 py-6 sm:px-8 sm:py-10 lg:px-16">
+      <div className="mx-auto min-w-0 max-w-3xl">
         <div className="animate-fade-up">
-          <h1 className="text-3xl font-semibold font-serif text-foreground">
+          <h1 className="break-words text-3xl font-semibold font-serif text-foreground">
             Application Angle Analyzer
           </h1>
           <p className="mt-2 text-text-secondary">
@@ -315,14 +315,14 @@ export function AnalyzerClient({
         </div>
 
         {!hasData && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 flex items-center justify-between gap-4">
+          <div className="mt-6 flex flex-col items-stretch gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5">
             <p className="text-sm text-red-800">
               Your profile is empty. Add activities and honors first so we have
               something to analyze.
             </p>
             <Link
               href="/profile"
-              className="shrink-0 rounded-xl bg-red-800 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+              className="shrink-0 rounded-xl bg-red-800 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-red-700"
             >
               Fill out profile
             </Link>
@@ -368,7 +368,7 @@ export function AnalyzerClient({
 
         {status === "done" && result && (
           <div className="mt-10 flex flex-col gap-5 animate-fade-up">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-text-tertiary">
                   Your narrative angles — ranked
