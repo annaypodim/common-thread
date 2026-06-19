@@ -6,12 +6,11 @@ import { BottomBanner } from "@/components/bottom-banner";
 function CheckIcon({ delay }: { delay: string }) {
   return (
     <svg
-      width="28"
-      height="28"
       viewBox="0 0 24 24"
       fill="none"
-      className="inline-block ml-2 -mt-1"
+      className="ml-1.5 inline-block h-5 w-5 align-middle sm:ml-2 sm:h-7 sm:w-7"
       style={{ animationDelay: delay }}
+      aria-hidden="true"
     >
       <circle cx="12" cy="12" r="10" stroke="#3D6B56" strokeWidth="1.5" fill="none" opacity="0.3" />
       <path
@@ -30,8 +29,8 @@ function CheckIcon({ delay }: { delay: string }) {
 
 function SchoolLogo({ name }: { name: string }) {
   return (
-    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 border border-border-soft text-base font-medium text-text-secondary">
-      <span className="w-5 h-5 rounded-full bg-border-soft flex items-center justify-center text-[9px] font-bold text-text-tertiary">
+    <span className="inline-flex items-center gap-2 rounded-full border border-border-soft bg-white/60 px-3 py-1.5 text-sm font-medium text-text-secondary sm:px-4 sm:py-2 sm:text-base">
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-border-soft text-[9px] font-bold text-text-tertiary">
         {name[0]}
       </span>
       {name}
@@ -41,7 +40,7 @@ function SchoolLogo({ name }: { name: string }) {
 
 function ToolLogo({ name }: { name: string }) {
   return (
-    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/50 border border-border-soft text-base font-medium text-text-secondary">
+    <span className="inline-flex items-center gap-2 rounded-lg border border-border-soft bg-white/50 px-3 py-1.5 text-sm font-medium text-text-secondary sm:px-4 sm:py-2 sm:text-base">
       {name}
     </span>
   );
@@ -68,10 +67,10 @@ export default async function Home() {
       <div className="noise-overlay" />
 
       {/* Hero */}
-      <section className="w-full px-4 sm:px-6 pt-12 sm:pt-20 pb-12">
+      <section className="w-full px-4 pb-10 pt-10 sm:px-6 sm:pb-12 sm:pt-20">
         <div className="max-w-4xl mx-auto text-center">
           <div className="animate-fade-up">
-            <h1 className="font-serif text-6xl sm:text-7xl md:text-8xl leading-[1.08] tracking-tight text-foreground">
+            <h1 className="font-serif text-[3.15rem] leading-[1.02] tracking-tight text-foreground min-[390px]:text-[3.55rem] sm:text-7xl sm:leading-[1.08] md:text-8xl">
               <span className="block">
                 Application: Submitted
                 <CheckIcon delay="0.6s" />
@@ -87,7 +86,7 @@ export default async function Home() {
             </h1>
 
             <p
-              className="mt-6 mx-auto max-w-lg text-xl leading-relaxed text-text-secondary animate-fade-up"
+              className="mx-auto mt-5 max-w-lg text-base leading-7 text-text-secondary animate-fade-up sm:mt-6 sm:text-xl sm:leading-relaxed"
               style={{ animationDelay: "0.4s" }}
             >
               This application strategy platform will help you find your narrative
@@ -100,7 +99,7 @@ export default async function Home() {
             >
               <Link
                 href={primaryCtaHref}
-                className="rounded-full bg-forest text-white px-8 py-3 text-lg font-medium hover:bg-forest-light transition-colors"
+                className="inline-flex w-full max-w-xs items-center justify-center rounded-full bg-forest px-7 py-3 text-base font-medium text-white transition-colors hover:bg-forest-light sm:w-auto sm:max-w-none sm:px-8 sm:text-lg"
               >
                 Get started for free
               </Link>
@@ -110,13 +109,13 @@ export default async function Home() {
       </section>
 
       {/* Trusted by / Differentiator — full-width logo bar */}
-      <section className="w-full border-y border-border-soft py-6 animate-fade-up">
-        <div className="flex items-center justify-center gap-6 sm:gap-10 flex-wrap px-6">
-          <span className="text-base font-semibold text-foreground whitespace-nowrap">Built by students admitted to</span>
+      <section className="w-full border-y border-border-soft py-5 animate-fade-up sm:py-6">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-2.5 px-4 text-center sm:gap-5 sm:px-6">
+          <span className="basis-full text-sm font-semibold text-foreground sm:basis-auto sm:text-base">Built by students admitted to</span>
           <SchoolLogo name="UC Berkeley" />
           <SchoolLogo name="COSMOS" />
           <span className="hidden sm:block w-px h-5 bg-border-soft" />
-          <span className="text-base font-semibold text-foreground whitespace-nowrap">Inspired by</span>
+          <span className="basis-full pt-2 text-sm font-semibold text-foreground sm:basis-auto sm:pt-0 sm:text-base">Inspired by</span>
           <ToolLogo name="Notion" />
           <ToolLogo name="Google Docs" />
           <ToolLogo name="Grammarly" />
@@ -124,18 +123,18 @@ export default async function Home() {
       </section>
 
       {/* Product showcase — full-bleed cards like Notion */}
-      <section className="w-full px-4 sm:px-6 py-12 sm:py-16">
+      <section className="w-full px-4 py-10 sm:px-6 sm:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-7xl mx-auto">
           {/* Dashboard card — wide, interactive-feeling */}
           <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-2 min-h-[220px]">
-              <h4 className="text-base font-semibold text-foreground uppercase tracking-wide">Dashboard Structure</h4>
-              <p className="mt-2 text-lg leading-relaxed text-text-secondary">
+            <div className="flex flex-col gap-2 sm:min-h-[220px]">
+              <h4 className="text-sm font-semibold uppercase tracking-wide text-foreground sm:text-base">Dashboard Structure</h4>
+              <p className="mt-1 text-base leading-7 text-text-secondary sm:mt-2 sm:text-lg sm:leading-relaxed">
                 Manage all your college and summer program applications in one place. Keep track of deadlines, essays, and research without switching between tabs. Easily revisit past responses to refine your drafts, organize &quot;Why This College&quot; insights, and stay in control, even during the most overwhelming parts of application season.
               </p>
             </div>
             <Link href={dashboardHref} className="group">
-              <div className="feature-card bg-sage rounded-2xl p-6 sm:p-8 h-full">
+              <div className="feature-card h-full rounded-xl bg-sage p-5 sm:rounded-2xl sm:p-8">
                 <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-2">
                     <span className="w-8 h-8 rounded-lg bg-forest/10 flex items-center justify-center">
@@ -148,21 +147,21 @@ export default async function Home() {
                   </div>
                   <span className="text-text-tertiary group-hover:translate-x-1 transition-transform">&rarr;</span>
                 </div>
-                <h3 className="font-serif text-3xl sm:text-4xl tracking-tight text-foreground mb-3">
+                <h3 className="mb-3 font-serif text-3xl tracking-tight text-foreground sm:text-4xl">
                   Your entire application,<br />organized.
                 </h3>
                 <div className="space-y-2 mt-4">
-                  <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary flex items-center justify-between">
-                    <span>Stanford — Early Action</span>
-                    <span className="text-sm text-text-tertiary">Nov 1</span>
+                  <div className="flex items-center justify-between gap-3 rounded-lg bg-white/50 px-3 py-2.5 text-sm text-text-secondary sm:px-4 sm:text-base">
+                    <span className="min-w-0">Stanford — Early Action</span>
+                    <span className="shrink-0 text-sm text-text-tertiary">Nov 1</span>
                   </div>
-                  <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary flex items-center justify-between">
-                    <span>MIT — Regular Decision</span>
-                    <span className="text-sm text-text-tertiary">Jan 5</span>
+                  <div className="flex items-center justify-between gap-3 rounded-lg bg-white/50 px-3 py-2.5 text-sm text-text-secondary sm:px-4 sm:text-base">
+                    <span className="min-w-0">MIT — Regular Decision</span>
+                    <span className="shrink-0 text-sm text-text-tertiary">Jan 5</span>
                   </div>
-                  <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary flex items-center justify-between">
-                    <span>UC Berkeley — Essay Draft 2</span>
-                    <span className="text-sm text-forest-muted font-medium">In progress</span>
+                  <div className="flex items-start justify-between gap-3 rounded-lg bg-white/50 px-3 py-2.5 text-sm text-text-secondary sm:items-center sm:px-4 sm:text-base">
+                    <span className="min-w-0">UC Berkeley — Essay Draft 2</span>
+                    <span className="shrink-0 text-sm font-medium text-forest-muted">In progress</span>
                   </div>
                 </div>
               </div>
@@ -171,14 +170,14 @@ export default async function Home() {
 
           {/* Analyzer card */}
           <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-2 min-h-[220px]">
-              <h4 className="text-base font-semibold text-foreground uppercase tracking-wide">Narrative Analyzer</h4>
-              <p className="mt-2 text-lg leading-relaxed text-text-secondary">
+            <div className="flex flex-col gap-2 sm:min-h-[220px]">
+              <h4 className="text-sm font-semibold uppercase tracking-wide text-foreground sm:text-base">Narrative Analyzer</h4>
+              <p className="mt-1 text-base leading-7 text-text-secondary sm:mt-2 sm:text-lg sm:leading-relaxed">
                 Discover the strongest way to frame your story. Based on your activities, projects, and interests, we help you identify compelling narrative angles tailored to each college or program. Instead of guessing what to emphasize, you&apos;ll have a clear, strategic direction for your entire application.
               </p>
             </div>
             <Link href={analyzerHref} className="group">
-              <div className="feature-card bg-sage rounded-2xl p-6 sm:p-8 h-full">
+              <div className="feature-card h-full rounded-xl bg-sage p-5 sm:rounded-2xl sm:p-8">
                 <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-2">
                     <span className="w-8 h-8 rounded-lg bg-forest/10 flex items-center justify-center">
@@ -191,17 +190,17 @@ export default async function Home() {
                   </div>
                   <span className="text-text-tertiary group-hover:translate-x-1 transition-transform">&rarr;</span>
                 </div>
-                <h3 className="font-serif text-3xl sm:text-4xl tracking-tight text-foreground mb-3">
+                <h3 className="mb-3 font-serif text-3xl tracking-tight text-foreground sm:text-4xl">
                   Find the narrative<br />only you can tell.
                 </h3>
                 <div className="space-y-2 mt-4">
-                  <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary">
+                  <div className="rounded-lg bg-white/50 px-3 py-2.5 text-sm text-text-secondary sm:px-4 sm:text-base">
                     <span className="text-sm font-medium text-forest-muted">Primary theme:</span> Environmental data + civic impact
                   </div>
-                  <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary">
+                  <div className="rounded-lg bg-white/50 px-3 py-2.5 text-sm text-text-secondary sm:px-4 sm:text-base">
                     <span className="text-sm font-medium text-forest-muted">Evidence:</span> Air quality research, Climate blog, Internship
                   </div>
-                  <div className="bg-white/50 rounded-lg px-4 py-2.5 text-base text-text-secondary">
+                  <div className="rounded-lg bg-white/50 px-3 py-2.5 text-sm text-text-secondary sm:px-4 sm:text-base">
                     <span className="text-sm font-medium text-forest-muted">Angle:</span> Data-driven environmental storytelling
                   </div>
                 </div>
@@ -212,25 +211,25 @@ export default async function Home() {
 
         {/* Value props row — compact strip */}
         <div className="max-w-7xl mx-auto mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-2xl bg-forest px-6 py-5 text-white flex items-center gap-4">
-            <p className="text-4xl font-serif leading-none">0%</p>
-            <p className="text-base text-white/60">AI-written content.</p>
+          <div className="flex items-center gap-4 rounded-xl bg-forest px-5 py-4 text-white sm:rounded-2xl sm:px-6 sm:py-5">
+            <p className="font-serif text-3xl leading-none sm:text-4xl">0%</p>
+            <p className="text-sm text-white/60 sm:text-base">AI-written content.</p>
           </div>
-          <div className="rounded-2xl bg-ivory border border-border-soft px-6 py-5 flex items-center gap-4">
-            <p className="text-4xl font-serif text-foreground leading-none">100%</p>
-            <p className="text-base text-text-tertiary">Your voice, preserved. We only give feedback.</p>
+          <div className="flex items-center gap-4 rounded-xl border border-border-soft bg-ivory px-5 py-4 sm:rounded-2xl sm:px-6 sm:py-5">
+            <p className="font-serif text-3xl leading-none text-foreground sm:text-4xl">100%</p>
+            <p className="text-sm text-text-tertiary sm:text-base">Your voice, preserved. We only give feedback.</p>
           </div>
-          <div className="rounded-2xl bg-ivory border border-border-soft px-6 py-5 flex items-center gap-4">
-            <p className="text-4xl font-serif text-foreground leading-none">1</p>
-            <p className="text-base text-text-tertiary">Organization platform for everything.</p>
+          <div className="flex items-center gap-4 rounded-xl border border-border-soft bg-ivory px-5 py-4 sm:rounded-2xl sm:px-6 sm:py-5">
+            <p className="font-serif text-3xl leading-none text-foreground sm:text-4xl">1</p>
+            <p className="text-sm text-text-tertiary sm:text-base">Organization platform for everything.</p>
           </div>
         </div>
       </section>
 
       {/* CTA — full-width forest band */}
-      <section className="w-full bg-forest py-16 sm:py-20">
+      <section className="w-full bg-forest py-12 sm:py-20">
         <div className="max-w-3xl mx-auto text-center px-6">
-          <h2 className="font-serif text-5xl sm:text-6xl tracking-tight text-white">
+          <h2 className="font-serif text-[2.75rem] leading-[1.02] tracking-tight text-white sm:text-6xl">
             Your story is already there.
             <br />
             <span className="font-serif italic text-white/50">Let&apos;s find it.</span>
@@ -238,7 +237,7 @@ export default async function Home() {
           <div className="mt-8">
             <Link
               href={primaryCtaHref}
-              className="rounded-full bg-white text-forest px-9 py-3.5 text-lg font-semibold hover:bg-white/90 transition-colors"
+              className="inline-flex w-full max-w-xs items-center justify-center rounded-full bg-white px-8 py-3.5 text-base font-semibold text-forest transition-colors hover:bg-white/90 sm:w-auto sm:max-w-none sm:px-9 sm:text-lg"
             >
               Start planning for free
             </Link>
