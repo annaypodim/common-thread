@@ -57,10 +57,12 @@ export default async function Home() {
     redirect("/dashboard");
   }
 
-  const dashboardHref = "/sign-in";
-  const analyzerHref = "/sign-in";
+  // CTAs lead straight into the app; middleware lazily provisions a guest
+  // session on first entry, so people can start without signing in.
+  const dashboardHref = "/dashboard";
+  const analyzerHref = "/analyzer";
 
-  const primaryCtaHref = "/sign-in";
+  const primaryCtaHref = "/dashboard";
   return (
     <div className="flex flex-col min-h-screen font-sans">
       <div className="noise-overlay" />

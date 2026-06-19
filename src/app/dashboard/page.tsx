@@ -1,12 +1,13 @@
 import { requireUser } from "@/lib/auth";
 import { getMissingUserCollegesTableMessage, getUserSavedColleges, searchColleges } from "@/lib/colleges";
-import { getUserProfileData } from "@/lib/profile";
+import { getUserProfileData, hasAnyProfileData } from "@/lib/profile";
 import { getSavedAnalysis } from "@/lib/analysis";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { DashboardCollegeManager } from "@/components/dashboard-college-manager";
 import { Sidebar } from "@/components/sidebar";
 import { BottomBanner } from "@/components/bottom-banner";
+import { SaveWorkPrompt } from "@/components/save-work-prompt";
 
 export default async function Dashboard() {
   const user = await requireUser();
@@ -129,6 +130,10 @@ export default async function Dashboard() {
         </main>
       </div>
       <BottomBanner />
+      <SaveWorkPrompt
+        isAnonymous={user.is_anonymous ?? false}
+        show={hasAnyProfileData(profile) || Boolean(savedAnalysis)}
+      />
     </div>
   );
 }

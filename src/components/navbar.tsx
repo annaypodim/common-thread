@@ -16,12 +16,22 @@ export async function Navbar() {
         </Link>
       </div>
       <div className="flex items-center gap-4">
-        {user ? (
+        {user && !user.is_anonymous ? (
           <>
             <span className="hidden text-base text-white/85 sm:block">
               {user.user_metadata?.full_name ?? user.email}
             </span>
             <SignOutButton />
+          </>
+        ) : user?.is_anonymous ? (
+          <>
+            <span className="hidden text-base text-white/60 sm:block">Guest</span>
+            <Link
+              href="/sign-in"
+              className="text-base text-white/85 hover:text-white transition-colors nav-link"
+            >
+              save your work
+            </Link>
           </>
         ) : (
           <Link
