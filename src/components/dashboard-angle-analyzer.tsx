@@ -45,7 +45,7 @@ export function DashboardAngleAnalyzer({
     : null;
 
   return (
-    <article className="rounded-2xl bg-forest p-5 text-white">
+    <article className="min-w-0 rounded-2xl bg-forest p-4 text-white sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold">Angle Analyzer Snapshot</h3>
@@ -80,8 +80,8 @@ export function DashboardAngleAnalyzer({
           <span className="inline-block rounded-full bg-white/20 px-3 py-0.5 text-xs font-semibold uppercase tracking-wide text-white/80">
             Strongest Angle
           </span>
-          <div className="mt-2 flex items-stretch gap-3">
-            <h4 className="text-xl font-semibold font-serif">
+          <div className="mt-2 flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-stretch sm:gap-3">
+            <h4 className="min-w-0 break-words text-xl font-semibold font-serif">
               {topAngle.title}
             </h4>
             <div className="flex items-center rounded-full border border-white/25 bg-white/15 px-3">

@@ -190,8 +190,8 @@ export function DashboardCollegeManager({
 
   return (
     <>
-      <section className="mt-4 grid gap-5 xl:grid-cols-5">
-        <article className="rounded-2xl border border-border-soft bg-white p-5 xl:col-span-3">
+      <section className="grid min-w-0 gap-4 sm:mt-4 sm:gap-5 xl:grid-cols-5">
+        <article className="min-w-0 rounded-2xl border border-border-soft bg-white p-4 sm:p-5 xl:col-span-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h3 className="text-lg font-semibold">Active Applications</h3>
@@ -200,7 +200,7 @@ export function DashboardCollegeManager({
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="rounded-full bg-forest px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-forest-light"
+              className="w-full rounded-full bg-forest px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-forest-light sm:w-auto sm:py-2"
             >
               Add College
             </button>
@@ -239,7 +239,7 @@ export function DashboardCollegeManager({
         <DashboardAngleAnalyzer savedResult={savedAnalysis} />
       </section>
 
-      <section className="mt-5 rounded-2xl border border-border-soft bg-white p-5">
+      <section className="mt-4 rounded-2xl border border-border-soft bg-white p-4 sm:mt-5 sm:p-5">
         <h3 className="text-lg font-semibold">Saved Colleges</h3>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {savedColleges.length === 0 && (
@@ -249,9 +249,9 @@ export function DashboardCollegeManager({
           )}
 
           {savedColleges.map((college) => (
-            <article key={`${college.id}-card`} className="flex flex-col rounded-xl border border-border-soft bg-ivory/60 p-4">
+            <article key={`${college.id}-card`} className="flex min-w-0 flex-col rounded-xl border border-border-soft bg-ivory/60 p-4">
               <div className="flex items-start justify-between gap-3">
-                <p className="text-base font-semibold text-foreground">{toTitleCase(college.collegeName)}</p>
+                <p className="min-w-0 break-words text-base font-semibold text-foreground">{toTitleCase(college.collegeName)}</p>
                 <button
                   type="button"
                   onClick={() => handleRemoveCollege(college)}
@@ -271,8 +271,8 @@ export function DashboardCollegeManager({
       </section>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 px-4">
-          <div className="w-full max-w-2xl rounded-3xl border border-border-soft bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-40 flex items-end justify-center overflow-y-auto bg-black/35 px-3 py-3 sm:items-center sm:px-4">
+          <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto rounded-3xl border border-border-soft bg-white p-4 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-semibold text-foreground">Add College</h3>
@@ -378,7 +378,7 @@ export function DashboardCollegeManager({
               <input type="hidden" name="website" value={selectedCollege?.website ?? ""} />
               <input type="hidden" name="intendedMajor" value={intendedMajor} />
 
-              <div className="flex justify-end gap-3">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -400,7 +400,7 @@ export function DashboardCollegeManager({
       )}
 
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl border border-green-200 bg-green-100 px-4 py-3 text-sm font-medium text-green-900 shadow-lg">
+        <div className="fixed right-4 bottom-4 left-4 z-50 rounded-2xl border border-green-200 bg-green-100 px-4 py-3 text-center text-sm font-medium text-green-900 shadow-lg sm:right-6 sm:bottom-6 sm:left-auto sm:text-left">
           {toastMessage}
         </div>
       )}
