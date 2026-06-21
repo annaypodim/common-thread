@@ -8,8 +8,8 @@ import { getSavedAnalysis } from "@/lib/analysis";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { DashboardCollegeManager } from "@/components/dashboard-college-manager";
-import { Sidebar } from "@/components/sidebar";
 import { BottomBanner } from "@/components/bottom-banner";
+import { WorkspaceLayout } from "@/components/workspace-layout";
 import { SaveWorkPrompt } from "@/components/save-work-prompt";
 
 export default async function Dashboard() {
@@ -220,27 +220,27 @@ export default async function Dashboard() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-ivory text-foreground">
-      <div className="flex flex-1">
-        <Sidebar activePage="dashboard" profile={profile} />
-
-        <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
-          <DashboardCollegeManager
-            initialCollegeSuggestions={initialCollegeSuggestions}
-            initialSavedColleges={savedColleges}
-            initialDeadlines={savedDeadlines}
-            initialDeadlineSuggestions={initialDeadlineSuggestions}
-            defaultIntendedMajor={profile.intendedMajors}
-            savedAnalysis={savedAnalysis}
-            searchCollegeOptions={searchCollegeOptions}
-            addCollegeAction={addCollege}
-            removeCollegeAction={removeCollege}
-            lookupDeadlinesAction={lookupDeadlines}
-            saveDeadlineAction={saveDeadline}
-            removeDeadlineAction={removeDeadline}
-          />
-        </main>
-      </div>
+    <div className="flex min-w-0 flex-1 flex-col overflow-x-clip bg-ivory text-foreground">
+      <WorkspaceLayout
+        activePage="dashboard"
+        profile={profile}
+        mainClassName="px-4 py-4 sm:px-6 sm:py-5 lg:px-8"
+      >
+        <DashboardCollegeManager
+          initialCollegeSuggestions={initialCollegeSuggestions}
+          initialSavedColleges={savedColleges}
+          initialDeadlines={savedDeadlines}
+          initialDeadlineSuggestions={initialDeadlineSuggestions}
+          defaultIntendedMajor={profile.intendedMajors}
+          savedAnalysis={savedAnalysis}
+          searchCollegeOptions={searchCollegeOptions}
+          addCollegeAction={addCollege}
+          removeCollegeAction={removeCollege}
+          lookupDeadlinesAction={lookupDeadlines}
+          saveDeadlineAction={saveDeadline}
+          removeDeadlineAction={removeDeadline}
+        />
+      </WorkspaceLayout>
       <BottomBanner />
       <SaveWorkPrompt
         isAnonymous={user.is_anonymous ?? false}

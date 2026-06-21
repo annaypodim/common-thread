@@ -238,7 +238,7 @@ export function UpcomingDeadlines({
 
   return (
     <article
-      className={`rounded-2xl border border-border-soft bg-white p-5 ${className}`}
+      className={`min-w-0 rounded-2xl border border-border-soft bg-white p-4 sm:p-5 ${className}`}
     >
       <div>
         <h3 className="text-lg font-semibold">Upcoming Deadlines</h3>
@@ -339,7 +339,7 @@ export function UpcomingDeadlines({
                       const selected = round.savedId !== null;
                       const days = daysUntil(round.dueDate, now);
                       return (
-                        <div key={key} className="inline-flex items-center">
+                        <div key={key} className="flex min-w-0 w-full items-center sm:inline-flex sm:w-auto">
                           <button
                             type="button"
                             onClick={() => toggleRound(college, round)}
@@ -349,7 +349,7 @@ export function UpcomingDeadlines({
                                 ? "Selected — tap to remove"
                                 : "Tap to select this round"
                             }
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                            className={`flex min-w-0 flex-1 flex-wrap items-center gap-1.5 rounded-2xl border px-3 py-2 text-left text-xs font-medium transition-colors disabled:opacity-50 sm:inline-flex sm:flex-none sm:rounded-full sm:py-1.5 ${
                               selected
                                 ? "border-forest bg-forest text-white hover:bg-forest-light"
                                 : "border-border-soft bg-white text-text-secondary hover:border-forest hover:text-forest"

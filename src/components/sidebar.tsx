@@ -17,12 +17,12 @@ export function Sidebar({
   const hasStartedProfile = hasAnyProfileData(profile);
 
   return (
-    <aside className="w-64 shrink-0 border-r border-border-soft bg-white/60 px-5 py-6">
-      <h1 className="mt-2 text-xl font-semibold text-foreground">
+    <aside className="w-full border-b border-border-soft bg-white/60 px-4 py-4 lg:w-64 lg:shrink-0 lg:border-r lg:border-b-0 lg:px-5 lg:py-6">
+      <h1 className="text-lg font-semibold text-foreground lg:mt-2 lg:text-xl">
         Application Workspace
       </h1>
 
-      <nav className="mt-8 flex flex-col gap-1">
+      <nav className="mt-3 grid grid-cols-2 gap-2 lg:mt-8 lg:flex lg:flex-col lg:gap-1">
         {navItems.map((item) => (
           <Link
             key={item.key}
@@ -40,7 +40,7 @@ export function Sidebar({
 
       <Link
         href="/profile"
-        className={`mt-8 block rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+        className={`mt-3 block rounded-xl px-4 py-3 text-sm font-medium transition-colors lg:mt-8 ${
           hasStartedProfile
             ? "border border-border-soft bg-white text-foreground hover:bg-ivory"
             : "border border-red-200 bg-red-50 text-red-800 hover:bg-red-100"
@@ -53,22 +53,24 @@ export function Sidebar({
         <p className="text-xs font-semibold uppercase tracking-[0.15em] text-text-tertiary">
           Profile Snapshot
         </p>
-        <p className="mt-2 text-sm text-text-secondary">
-          <span className="font-semibold text-foreground">School:</span>{" "}
-          {profile.highSchool || "Not added"}
-        </p>
-        <p className="mt-1 text-sm text-text-secondary">
-          <span className="font-semibold text-foreground">Intended Major:</span>{" "}
-          {profile.intendedMajors || "Not added"}
-        </p>
-        <p className="mt-1 text-sm text-text-secondary">
-          <span className="font-semibold text-foreground">Activities:</span>{" "}
-          {profile.activities.length} listed
-        </p>
-        <p className="mt-1 text-sm text-text-secondary">
-          <span className="font-semibold text-foreground">Awards:</span>{" "}
-          {profile.honors.length} listed
-        </p>
+        <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 lg:block">
+          <p className="min-w-0 text-sm text-text-secondary lg:mt-2">
+            <span className="font-semibold text-foreground">School:</span>{" "}
+            <span className="break-words">{profile.highSchool || "Not added"}</span>
+          </p>
+          <p className="min-w-0 text-sm text-text-secondary lg:mt-1">
+            <span className="font-semibold text-foreground">Intended Major:</span>{" "}
+            <span className="break-words">{profile.intendedMajors || "Not added"}</span>
+          </p>
+          <p className="min-w-0 text-sm text-text-secondary lg:mt-1">
+            <span className="font-semibold text-foreground">Activities:</span>{" "}
+            {profile.activities.length} listed
+          </p>
+          <p className="min-w-0 text-sm text-text-secondary lg:mt-1">
+            <span className="font-semibold text-foreground">Awards:</span>{" "}
+            {profile.honors.length} listed
+          </p>
+        </div>
       </div>
     </aside>
   );
