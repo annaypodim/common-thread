@@ -2,8 +2,9 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getUserProfileData, type Activity, type Honor } from "@/lib/profile";
+import { getUserProfileData, hasAnyProfileData, type Activity, type Honor } from "@/lib/profile";
 import { ProfileForm } from "@/components/profile-form";
+import { SaveWorkPrompt } from "@/components/save-work-prompt";
 import { redirect } from "next/navigation";
 
 function cleanActivities(activities: Activity[]) {
@@ -198,6 +199,10 @@ export default async function ProfilePage() {
         autosaveAction={autosaveProfile}
         deleteActivityAction={deleteActivity}
         deleteHonorAction={deleteHonor}
+      />
+      <SaveWorkPrompt
+        isAnonymous={user.is_anonymous ?? false}
+        show={hasAnyProfileData(profile)}
       />
     </main>
   );

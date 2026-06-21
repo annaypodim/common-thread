@@ -3,13 +3,14 @@ import { getMissingUserCollegesTableMessage, getUserSavedColleges, searchCollege
 import { getMissingDeadlinesTableMessage, getUserDeadlines } from "@/lib/deadlines";
 import { cacheKey, getCachedDeadlinesByName, getCollegeDeadlineSuggestions } from "@/lib/deadline-cache";
 import type { DeadlineSuggestion } from "@/lib/deadline-lookup";
-import { getUserProfileData } from "@/lib/profile";
+import { getUserProfileData, hasAnyProfileData } from "@/lib/profile";
 import { getSavedAnalysis } from "@/lib/analysis";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { DashboardCollegeManager } from "@/components/dashboard-college-manager";
 import { BottomBanner } from "@/components/bottom-banner";
 import { WorkspaceLayout } from "@/components/workspace-layout";
+import { SaveWorkPrompt } from "@/components/save-work-prompt";
 
 export default async function Dashboard() {
   const user = await requireUser();
@@ -241,6 +242,10 @@ export default async function Dashboard() {
         />
       </WorkspaceLayout>
       <BottomBanner />
+      <SaveWorkPrompt
+        isAnonymous={user.is_anonymous ?? false}
+        show={hasAnyProfileData(profile) || Boolean(savedAnalysis)}
+      />
     </div>
   );
 }

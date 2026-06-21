@@ -1,6 +1,6 @@
 "use client";
 
-import { signInWithGoogle, signOut } from "@/lib/auth";
+import { signInWithGoogle, signOut, upgradeWithGoogle } from "@/lib/auth";
 
 type GoogleButtonProps = {
   label?: string;
@@ -14,6 +14,20 @@ export function GoogleSignInButton({
   return (
     <button
       onClick={() => signInWithGoogle()}
+      className={`inline-flex items-center justify-center gap-2 rounded-full bg-forest px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-forest-light ${className}`}
+    >
+      {label}
+    </button>
+  );
+}
+
+export function UpgradeWithGoogleButton({
+  label = "Continue with Google",
+  className = "",
+}: GoogleButtonProps) {
+  return (
+    <button
+      onClick={() => upgradeWithGoogle()}
       className={`inline-flex items-center justify-center gap-2 rounded-full bg-forest px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-forest-light ${className}`}
     >
       {label}

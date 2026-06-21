@@ -42,6 +42,39 @@ export async function signInWithGoogle() {
   redirect(data.url);
 }
 
+export async function upgradeWithGoogle() {
+  const supabase = await createClient();
+
+  const headerList = await headers();
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL ?? headerList.get("origin") ?? "";
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Upgrade a guest in place: linkIdentity keeps the same user.id, so all of
+  // the guest's data (profile, activities, honors, analysis, colleges) becomes
+  // the permanent account's data with no migration. The identity-already-exists
+  // conflict only surfaces after the Google round-trip and is handled in
+  // /auth/callback. For non-guests (or if manual linking is disabled) we fall
+  // through to a normal Google sign-in.
+  if (user?.is_anonymous) {
+    const { data, error } = await supabase.auth.linkIdentity({
+      provider: "google",
+      options: {
+        redirectTo: `${origin}/auth/callback`,
+      },
+    });
+
+    if (!error && data?.url) {
+      redirect(data.url);
+    }
+  }
+
+  return signInWithGoogle();
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
