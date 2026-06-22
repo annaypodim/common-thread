@@ -5,6 +5,7 @@ import { hasAnyProfileData } from "@/lib/profile";
 const navItems = [
   { label: "Dashboard", href: "/dashboard", key: "dashboard" },
   { label: "Angle Analyzer", href: "/analyzer", key: "analyzer" },
+  { label: "Personal Statement", href: "/personal-statement", key: "personal-statement" },
 ];
 
 export function Sidebar({
