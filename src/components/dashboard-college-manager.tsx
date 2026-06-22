@@ -5,6 +5,8 @@ import { type FormEvent, useEffect, useState, useTransition } from "react";
 import type { CollegeRecord, SavedCollege } from "@/lib/colleges";
 import type { AnalyzeResult } from "@/app/api/analyze/route";
 import { DashboardAngleAnalyzer } from "@/components/dashboard-angle-analyzer";
+import { PersonalStatementCard } from "@/components/personal-statement-card";
+import type { PersonalStatementDraft } from "@/lib/personal-statement-types";
 import type { CollegeDeadline } from "@/lib/deadlines";
 import {
   UpcomingDeadlines,
@@ -33,6 +35,7 @@ type DashboardCollegeManagerProps = {
   initialDeadlineSuggestions: Record<string, DeadlineSuggestion[]>;
   defaultIntendedMajor: string;
   savedAnalysis: AnalyzeResult | null;
+  personalStatementDraft: PersonalStatementDraft;
   searchCollegeOptions: (query: string) => Promise<SearchCollegeActionState>;
   addCollegeAction: (formData: FormData) => Promise<AddCollegeActionState>;
   removeCollegeAction: (formData: FormData) => Promise<RemoveCollegeActionState>;
@@ -62,6 +65,7 @@ export function DashboardCollegeManager({
   initialDeadlineSuggestions,
   defaultIntendedMajor,
   savedAnalysis,
+  personalStatementDraft,
   searchCollegeOptions,
   addCollegeAction,
   removeCollegeAction,
@@ -235,8 +239,9 @@ export function DashboardCollegeManager({
         />
       </section>
 
-      <section className="mt-5">
+      <section className="mt-5 grid min-w-0 gap-5 xl:grid-cols-2">
         <DashboardAngleAnalyzer savedResult={savedAnalysis} />
+        <PersonalStatementCard draft={personalStatementDraft} />
       </section>
 
       <section className="mt-5 rounded-2xl border border-border-soft bg-white p-4 sm:p-5">

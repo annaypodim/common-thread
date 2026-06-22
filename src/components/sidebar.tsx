@@ -6,6 +6,7 @@ const navItems = [
   { label: "Dashboard", href: "/dashboard", key: "dashboard" },
   { label: "Activity Lists", href: "/activity-lists", key: "activity-lists" },
   { label: "Angle Analyzer", href: "/analyzer", key: "analyzer" },
+  { label: "Personal Statement", href: "/personal-statement", key: "personal-statement" },
 ];
 
 export function Sidebar({
