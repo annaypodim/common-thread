@@ -19,6 +19,7 @@ type RawItem = {
   id?: string;
   kind: ActivitySourceKind;
   title: string;
+  activityType: string;
   organization: string;
   position: string;
   description: string;
@@ -26,6 +27,22 @@ type RawItem = {
   hours: string;
   weeks: string;
 };
+
+// Headline for a listed item: leadership position if one exists, otherwise the
+// organization (honors just use their title).
+function rawPrimary(raw: RawItem) {
+  if (raw.kind === "honor") return raw.title;
+  return raw.position || raw.organization || raw.title;
+}
+
+// Sub-line under the headline: the extracurricular type, plus the organization
+// when a position is shown up top (so the org isn't lost).
+function rawSecondary(raw: RawItem) {
+  if (raw.kind === "honor") return "Award";
+  const type = raw.activityType || "Activity";
+  if (raw.position && raw.organization) return `${type} / ${raw.organization}`;
+  return type;
+}
 
 function makeEntry(raw: RawItem, platform: ActivityPlatform, sortOrder: number): ActivityListEntry {
   return {
@@ -84,21 +101,43 @@ function DraftCard({
   onMove: (direction: -1 | 1) => void;
   onRemove: () => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const descriptionLimit = limitFor(entry);
   const isHonor = entry.platform === "common_app" && entry.source_kind === "honor";
   const inputClass = "mt-1.5 w-full rounded-lg border border-border-soft bg-white px-3 py-2 text-sm outline-none focus:border-forest";
+  const summaryDetail = [entry.position_title, entry.organization].filter(Boolean).join(" · ");
 
   return (
     <article className="overflow-hidden rounded-xl border border-border-soft bg-white shadow-sm">
       <div className="flex items-center gap-2 border-b border-border-soft bg-[#f7f8f6] px-3 py-2">
-        <span className="font-mono text-sm font-semibold text-green-700">+</span>
-        <span className="min-w-0 flex-1 truncate font-mono text-xs text-text-secondary">
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          className="px-1 text-sm text-text-secondary"
+          aria-expanded={expanded}
+          aria-label={expanded ? "Collapse" : "Expand"}
+        >
+          {expanded ? "▾" : "▸"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          aria-expanded={expanded}
+          className="min-w-0 flex-1 truncate text-left font-mono text-xs text-text-secondary"
+        >
           {String(index + 1).padStart(2, "0")} · {entry.source_kind === "honor" ? "award" : "activity"}
-        </span>
+        </button>
         <button type="button" disabled={index === 0} onClick={() => onMove(-1)} className="px-1 text-sm disabled:opacity-25" aria-label="Move up">↑</button>
         <button type="button" disabled={index === total - 1} onClick={() => onMove(1)} className="px-1 text-sm disabled:opacity-25" aria-label="Move down">↓</button>
         <button type="button" onClick={onRemove} className="ml-1 text-xs font-medium text-red-700">Remove</button>
       </div>
+      {!expanded ? (
+        <button type="button" onClick={() => setExpanded(true)} className="block w-full px-3 py-3 text-left">
+          <p className="truncate text-sm font-semibold text-foreground">{entry.title || "Untitled"}</p>
+          {summaryDetail && <p className="mt-0.5 truncate text-xs text-text-secondary">{summaryDetail}</p>}
+          {entry.description && <p className="mt-1 line-clamp-2 text-sm text-text-secondary">{entry.description}</p>}
+        </button>
+      ) : (
       <div className="space-y-3 p-3">
         {entry.platform === "uc" && (
           <label className="block text-xs font-medium text-text-secondary">
@@ -185,6 +224,7 @@ function DraftCard({
           </div>
         )}
       </div>
+      )}
     </article>
   );
 }
@@ -204,6 +244,7 @@ export function ActivityListWorkspace({
       id: activity.id,
       kind: "activity" as const,
       title: activity.activity_type || activity.position_title || `Activity ${index + 1}`,
+      activityType: activity.activity_type ?? "",
       organization: activity.organization,
       position: activity.position_title,
       description: activity.description,
@@ -216,6 +257,7 @@ export function ActivityListWorkspace({
       id: honor.id,
       kind: "honor" as const,
       title: honor.title || `Honor ${index + 1}`,
+      activityType: "",
       organization: "",
       position: "",
       description: honor.achievement_description || honor.eligibility_requirements,
@@ -313,7 +355,7 @@ export function ActivityListWorkspace({
       <section className="mt-6 rounded-2xl border border-border-soft bg-white p-4 sm:p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Raw profile source</h2>
+            <h2 className="text-lg font-semibold">Listed activities</h2>
             <p className="text-sm text-text-secondary">Checking a platform copies the current profile text into an independent draft.</p>
           </div>
           <Link href="/profile" className="text-sm font-medium text-forest underline underline-offset-4">Edit raw profile</Link>
@@ -325,8 +367,8 @@ export function ActivityListWorkspace({
             {rawItems.map((raw) => (
               <div key={raw.key} className="grid gap-3 bg-[#fafbf9] px-3 py-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{raw.title}</p>
-                  <p className="mt-0.5 truncate font-mono text-[11px] text-text-tertiary">{raw.kind} / {raw.organization || "profile"}</p>
+                  <p className="truncate text-sm font-medium text-foreground">{rawPrimary(raw)}</p>
+                  <p className="mt-0.5 truncate text-[11px] text-text-tertiary">{rawSecondary(raw)}</p>
                 </div>
                 <label className="flex items-center gap-2 text-xs font-medium"><input type="checkbox" checked={selected("common_app", raw)} onChange={() => toggle(raw, "common_app")} className="accent-[#1B3A2D]" /> Common App</label>
                 <label className="flex items-center gap-2 text-xs font-medium"><input type="checkbox" checked={selected("uc", raw)} onChange={() => toggle(raw, "uc")} className="accent-[#1B3A2D]" /> UC App</label>
@@ -339,7 +381,7 @@ export function ActivityListWorkspace({
       <section className="mt-6 grid items-start gap-5 xl:grid-cols-2">
         <div className="min-w-0 rounded-2xl border border-border-soft bg-[#eef5f0] p-3 sm:p-4">
           <div className="mb-4 flex items-start justify-between gap-3">
-            <div><p className="font-mono text-xs text-green-800">+++ common-app.activity-list</p><h2 className="mt-1 text-xl font-semibold">Common App</h2></div>
+            <div><p className="text-xs font-medium text-green-800">Common App activity list</p><h2 className="mt-1 text-xl font-semibold">Common App</h2></div>
             <div className="text-right font-mono text-[11px] text-text-secondary"><p>{commonActivities}/10 activities</p><p>{commonHonors}/5 honors</p></div>
           </div>
           <p className="mb-4 rounded-lg bg-white/70 px-3 py-2 text-xs text-text-secondary">Be concise and action-first. Activity descriptions allow 150 characters; award descriptions allow 100.</p>
@@ -348,7 +390,7 @@ export function ActivityListWorkspace({
 
         <div className="min-w-0 rounded-2xl border border-border-soft bg-[#f2f1f8] p-3 sm:p-4">
           <div className="mb-4 flex items-start justify-between gap-3">
-            <div><p className="font-mono text-xs text-violet-800">+++ uc.activity-list</p><h2 className="mt-1 text-xl font-semibold">UC Activities + Awards</h2></div>
+            <div><p className="text-xs font-medium text-violet-800">UC activity list</p><h2 className="mt-1 text-xl font-semibold">UC Activities + Awards</h2></div>
             <p className="font-mono text-[11px] text-text-secondary">{uc.length}/20 total</p>
           </div>
           <p className="mb-4 rounded-lg bg-white/70 px-3 py-2 text-xs text-text-secondary">Choose the required UC category and use up to 350 characters to add context, impact, and scope.</p>
