@@ -4,6 +4,7 @@ import { hasAnyProfileData } from "@/lib/profile";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", key: "dashboard" },
+  { label: "Activity Lists", href: "/activity-lists", key: "activity-lists" },
   { label: "Angle Analyzer", href: "/analyzer", key: "analyzer" },
   { label: "Personal Statement", href: "/personal-statement", key: "personal-statement" },
 ];
@@ -23,7 +24,7 @@ export function Sidebar({
         Application Workspace
       </h1>
 
-      <nav className="mt-3 grid grid-cols-2 gap-2 lg:mt-8 lg:flex lg:flex-col lg:gap-1">
+      <nav className="mt-3 grid grid-cols-3 gap-2 lg:mt-8 lg:flex lg:flex-col lg:gap-1">
         {navItems.map((item) => (
           <Link
             key={item.key}
