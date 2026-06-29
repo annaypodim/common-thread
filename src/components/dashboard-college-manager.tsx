@@ -244,6 +244,17 @@ export function DashboardCollegeManager({
         <PersonalStatementCard draft={personalStatementDraft} />
       </section>
 
+      <section className="mt-5 rounded-2xl border border-border-soft bg-white p-4 sm:p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-mono text-xs uppercase tracking-[0.14em] text-forest-muted">Application materials</p>
+            <h3 className="mt-1 text-lg font-semibold">Common App + UC Activity Lists</h3>
+            <p className="mt-1 text-sm text-text-secondary">Turn raw profile experiences into ordered, platform-specific drafts with the correct limits.</p>
+          </div>
+          <Link href="/activity-lists" className="shrink-0 rounded-full bg-forest px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-forest-light">Open Activity Lists</Link>
+        </div>
+      </section>
+
       <section className="mt-4 rounded-2xl border border-border-soft bg-white p-4 sm:mt-5 sm:p-5">
         <h3 className="text-lg font-semibold">Saved Colleges</h3>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">

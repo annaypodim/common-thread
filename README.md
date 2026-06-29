@@ -6,3 +6,5 @@ Run `supabase/profile_schema.sql` in your Supabase SQL editor to enable persiste
 - high school + intended majors
 - activities/extracurriculars
 - honors/awards
+
+Run `supabase/activity_lists_schema.sql` to enable separate Common App and UC activity-list drafts.
