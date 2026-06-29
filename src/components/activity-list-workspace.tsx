@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ActivityListEntry, ActivityPlatform, ActivitySourceKind } from "@/lib/activity-lists";
 import type { Activity, Honor, UserProfileData } from "@/lib/profile";
 
@@ -322,7 +322,65 @@ export function ActivityListWorkspace({
   const [entries, setEntries] = useState(initialEntries);
   const [view, setView] = useState<ActivityPlatform>("common_app");
   const [message, setMessage] = useState("");
-  const [isPending, startTransition] = useTransition();
+  const [importing, setImporting] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dirtyRef = useRef(false);
+  const skipFirstAutosave = useRef(true);
+  // Always-current snapshot so autosave-on-unmount reads the latest edits.
+  const latestRef = useRef({ activities, honors, entries });
+  latestRef.current = { activities, honors, entries };
+
+  // Pull a PDF resume through /api/parse-resume and append the parsed activities
+  // and awards to the master list for review. Text extraction + the LLM call all
+  // happen server-side; here we only merge the results into local state.
+  async function importResume(file: File) {
+    setImporting(true);
+    setMessage("");
+    try {
+      const body = new FormData();
+      body.set("file", file);
+      const response = await fetch("/api/parse-resume", { method: "POST", body });
+      const data = (await response.json()) as { activities?: Activity[]; honors?: Honor[]; error?: string };
+
+      if (!response.ok) {
+        setMessage(data.error ?? "Could not import that resume. Please try again.");
+        return;
+      }
+
+      const importedActivities = data.activities ?? [];
+      const importedHonors = data.honors ?? [];
+
+      if (importedActivities.length) {
+        setActivities((current) => [
+          ...current,
+          ...importedActivities.map((activity) => ({
+            ...activity,
+            _key: makeKey("activity"),
+            avg_hours_per_week: activity.avg_hours_per_week?.toString() ?? "",
+            avg_weeks_per_year: activity.avg_weeks_per_year?.toString() ?? "",
+          })),
+        ]);
+      }
+      if (importedHonors.length) {
+        setHonors((current) => [...current, ...importedHonors.map((honor) => ({ ...honor, _key: makeKey("honor") }))]);
+      }
+
+      const parts: string[] = [];
+      if (importedActivities.length) parts.push(`${importedActivities.length} ${importedActivities.length === 1 ? "activity" : "activities"}`);
+      if (importedHonors.length) parts.push(`${importedHonors.length} ${importedHonors.length === 1 ? "award" : "awards"}`);
+      setMessage(
+        parts.length
+          ? `Your resume added ${parts.join(" and ")}. Review and edit them in the list below before saving.`
+          : "We could not find any activities or awards in that resume. Try a different file."
+      );
+    } catch {
+      setMessage("Could not import that resume. Please try again.");
+    } finally {
+      setImporting(false);
+    }
+  }
 
   const rawItems = useMemo<RawItem[]>(() => [
     ...activities.map((activity, index) => ({
@@ -469,18 +527,74 @@ export function ActivityListWorkspace({
     setEntries((current) => current.map((entry) => entry.platform === platform ? platformEntries[cursor++] : entry));
   }
 
-  function save() {
-    setMessage("");
-    startTransition(async () => {
-      const normalized = entries.map((entry) => ({ ...entry, sort_order: entries.filter((candidate) => candidate.platform === entry.platform).indexOf(entry) }));
+  const flush = useCallback(
+    async (announce = false) => {
+      if (!dirtyRef.current && !announce) return;
+      if (autosaveTimer.current) {
+        clearTimeout(autosaveTimer.current);
+        autosaveTimer.current = null;
+      }
+      dirtyRef.current = false;
+      setSaveStatus("saving");
+      if (announce) setMessage("");
+
+      const { activities, honors, entries } = latestRef.current;
+      const normalized = entries.map((entry) => ({
+        ...entry,
+        sort_order: entries.filter((candidate) => candidate.platform === entry.platform).indexOf(entry),
+      }));
       const result = await saveAction({
         activities: activities.map(({ _key, ...activity }) => { void _key; return activity; }),
         honors: honors.map(({ _key, ...honor }) => { void _key; return honor; }),
         entries: normalized,
       });
-      setMessage(result.error ? result.error : "Your activities, awards, and both application drafts are saved.");
-    });
-  }
+
+      if (result.error) {
+        dirtyRef.current = true;
+        setSaveStatus("error");
+        setMessage(result.error);
+      } else {
+        setSaveStatus("saved");
+        if (announce) setMessage("Your activities, awards, and both application drafts are saved.");
+      }
+    },
+    [saveAction]
+  );
+
+  const flushRef = useRef(flush);
+  flushRef.current = flush;
+
+  // Debounced autosave: persist shortly after the user stops editing so
+  // switching tabs in the app never silently loses work.
+  useEffect(() => {
+    if (skipFirstAutosave.current) {
+      skipFirstAutosave.current = false;
+      return;
+    }
+    dirtyRef.current = true;
+    setSaveStatus("saving");
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => void flushRef.current(), 800);
+    return () => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    };
+  }, [activities, honors, entries]);
+
+  // Warn before a hard reload/close with unsaved edits, and flush any pending
+  // edits when the workspace unmounts (client-side navigation to another page).
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (dirtyRef.current) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      void flushRef.current();
+    };
+  }, []);
 
   const commonActivities = common.filter((entry) => entry.source_kind === "activity").length;
   const commonHonors = common.filter((entry) => entry.source_kind === "honor").length;
@@ -493,9 +607,14 @@ export function ActivityListWorkspace({
           <h1 className="mt-2 font-serif text-4xl text-foreground">Activity List Workspace</h1>
           <p className="mt-2 max-w-3xl text-sm text-text-secondary">Add every activity and award here, then select the ones that belong in each application and tailor the wording per platform.</p>
         </div>
-        <button type="button" onClick={save} disabled={isPending} className="rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60">
-          {isPending ? "Saving…" : "Save"}
-        </button>
+        <div className="flex items-center gap-3">
+          <span aria-live="polite" className="text-xs text-text-secondary">
+            {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "All changes saved" : saveStatus === "error" ? "Save failed" : ""}
+          </span>
+          <button type="button" onClick={() => void flush(true)} disabled={saveStatus === "saving"} className="rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60">
+            {saveStatus === "saving" ? "Saving…" : "Save"}
+          </button>
+        </div>
       </header>
 
       {message && <p role="status" className={`mt-4 rounded-xl px-4 py-3 text-sm ${message.startsWith("Your") ? "bg-green-100 text-green-900" : "bg-red-50 text-red-800"}`}>{message}</p>}
@@ -507,6 +626,25 @@ export function ActivityListWorkspace({
             <p className="text-sm text-text-secondary">Your master list. Checking a platform copies the current text into an independent draft.</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => resumeInputRef.current?.click()}
+              disabled={importing}
+              className="rounded-full border border-forest px-4 py-2 text-sm font-medium text-forest disabled:opacity-60"
+            >
+              {importing ? "Reading resume…" : "Import resume"}
+            </button>
+            <input
+              ref={resumeInputRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) void importResume(file);
+              }}
+            />
             <button type="button" onClick={addActivity} className="rounded-full border border-forest bg-forest px-4 py-2 text-sm font-medium text-white">+ Add activity</button>
             <button type="button" onClick={addHonor} className="rounded-full border border-forest px-4 py-2 text-sm font-medium text-forest">+ Add award</button>
           </div>
