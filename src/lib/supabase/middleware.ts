@@ -6,7 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // use the app without signing in with Google. Marketing routes (/, /about,
 // /privacy-policy) are intentionally excluded so drive-by visitors don't
 // create auth.users rows.
-const APP_PREFIXES = ["/dashboard", "/profile", "/analyzer"];
+const APP_PREFIXES = ["/dashboard", "/activity-lists", "/analyzer", "/personal-statement"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });

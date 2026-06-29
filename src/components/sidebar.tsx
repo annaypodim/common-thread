@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { UserProfileData } from "@/lib/profile";
-import { hasAnyProfileData } from "@/lib/profile";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", key: "dashboard" },
@@ -16,8 +15,6 @@ export function Sidebar({
   activePage: string;
   profile: UserProfileData;
 }) {
-  const hasStartedProfile = hasAnyProfileData(profile);
-
   return (
     <aside className="w-full border-b border-border-soft bg-white/60 px-4 py-4 lg:w-64 lg:shrink-0 lg:border-r lg:border-b-0 lg:px-5 lg:py-6">
       <h1 className="text-lg font-semibold text-foreground lg:mt-2 lg:text-xl">
@@ -40,18 +37,7 @@ export function Sidebar({
         ))}
       </nav>
 
-      <Link
-        href="/profile"
-        className={`mt-3 block rounded-xl px-4 py-3 text-sm font-medium transition-colors lg:mt-8 ${
-          hasStartedProfile
-            ? "border border-border-soft bg-white text-foreground hover:bg-ivory"
-            : "border border-red-200 bg-red-50 text-red-800 hover:bg-red-100"
-        }`}
-      >
-        View Full Profile Plan
-      </Link>
-
-      <div className="mt-3 rounded-2xl border border-border-soft bg-white p-4">
+      <div className="mt-3 rounded-2xl border border-border-soft bg-white p-4 lg:mt-8">
         <p className="text-xs font-semibold uppercase tracking-[0.15em] text-text-tertiary">
           Profile Snapshot
         </p>

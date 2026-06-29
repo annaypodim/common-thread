@@ -133,7 +133,6 @@ export default async function ActivityListsPage() {
     }
 
     revalidatePath("/activity-lists");
-    revalidatePath("/profile");
     revalidatePath("/dashboard");
     return { success: true };
   }

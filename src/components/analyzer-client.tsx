@@ -321,10 +321,10 @@ export function AnalyzerClient({
               something to analyze.
             </p>
             <Link
-              href="/profile"
+              href="/activity-lists"
               className="shrink-0 rounded-xl bg-red-800 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-red-700"
             >
-              Fill out profile
+              Add activities
             </Link>
           </div>
         )}
