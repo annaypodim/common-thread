@@ -29,6 +29,7 @@ export default async function Analyzer() {
           savedResult={savedResult}
           runsRemaining={usage.remaining}
           runsLimit={usage.limit}
+          isSignedIn={!user.is_anonymous}
         />
       </WorkspaceLayout>
       <SaveWorkPrompt

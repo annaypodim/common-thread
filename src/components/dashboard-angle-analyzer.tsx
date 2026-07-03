@@ -6,14 +6,32 @@ import type { AnalyzeResult } from "@/app/api/analyze/route";
 
 export function DashboardAngleAnalyzer({
   savedResult,
+  runsRemaining,
+  runsLimit,
+  isSignedIn,
 }: {
   savedResult: AnalyzeResult | null;
+  runsRemaining: number;
+  runsLimit: number;
+  isSignedIn: boolean;
 }) {
   const [result, setResult] = useState<AnalyzeResult | null>(savedResult);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [remaining, setRemaining] = useState(runsRemaining);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+
+  const outOfRuns = remaining <= 0;
 
   async function runAnalysis() {
+    // Guests are routed to sign-in instead of running; guard anyway.
+    if (!isSignedIn) return;
+
+    if (outOfRuns) {
+      setShowLimitModal(true);
+      return;
+    }
+
     setStatus("loading");
     setErrorMsg("");
 
@@ -21,12 +39,20 @@ export function DashboardAngleAnalyzer({
       const res = await fetch("/api/analyze", { method: "POST" });
       const data = await res.json();
 
+      if (res.status === 429 || data.error === "out_of_runs") {
+        setRemaining(0);
+        setShowLimitModal(true);
+        setStatus("idle");
+        return;
+      }
+
       if (!res.ok) {
         setErrorMsg(data.error ?? "Something went wrong.");
         setStatus("error");
         return;
       }
 
+      setRemaining((r) => Math.max(0, r - 1));
       setResult(data as AnalyzeResult);
       setStatus("idle");
     } catch {
@@ -59,16 +85,31 @@ export function DashboardAngleAnalyzer({
             </p>
           )}
         </div>
-        {!result && (
-          <button
-            type="button"
-            onClick={runAnalysis}
-            disabled={status === "loading"}
-            className="shrink-0 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {status === "loading" ? "Analyzing..." : "Run Angle Analyzer"}
-          </button>
-        )}
+        {!result &&
+          (isSignedIn ? (
+            <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end">
+              <button
+                type="button"
+                onClick={runAnalysis}
+                disabled={status === "loading"}
+                className="rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {status === "loading" ? "Analyzing..." : "Run Angle Analyzer"}
+              </button>
+              <span className="text-xs text-white/60">
+                {outOfRuns
+                  ? "No runs left this month"
+                  : `${remaining} of ${runsLimit} runs left`}
+              </span>
+            </div>
+          ) : (
+            <Link
+              href="/sign-in"
+              className="shrink-0 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20"
+            >
+              Sign in to run
+            </Link>
+          ))}
       </div>
 
       {status === "error" && (
@@ -106,6 +147,40 @@ export function DashboardAngleAnalyzer({
       >
         Open Angle Analyzer
       </Link>
+
+      {showLimitModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={() => setShowLimitModal(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="w-full max-w-sm rounded-2xl bg-white p-6 text-center text-foreground shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-sage/15">
+              <span className="text-2xl" aria-hidden>
+                🌱
+              </span>
+            </div>
+            <h2 className="mt-4 text-xl font-semibold font-serif">
+              Out of re-runs
+            </h2>
+            <p className="mt-2 text-sm text-text-secondary">
+              You&rsquo;ve used all {runsLimit} analyzer runs for this month.
+              Come back soon!
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowLimitModal(false)}
+              className="mt-5 w-full rounded-xl bg-forest px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-forest-light"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </article>
   );
 }

@@ -200,6 +200,15 @@ export async function POST() {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
 
+  // Anonymous/guest sessions don't count as "signed in" — block them so they
+  // can't burn tokens (and can't reset their quota by clearing cookies).
+  if (user.is_anonymous) {
+    return NextResponse.json(
+      { error: "not_signed_in", message: "Sign in to run the analyzer." },
+      { status: 401 }
+    );
+  }
+
   const profile = await getUserProfileData(user.id);
 
   if (!profile.activities.length && !profile.honors.length) {

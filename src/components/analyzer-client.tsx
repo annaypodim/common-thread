@@ -239,12 +239,14 @@ export function AnalyzerClient({
   savedResult,
   runsRemaining,
   runsLimit,
+  isSignedIn,
 }: {
   profile: UserProfileData;
   hasData: boolean;
   savedResult: AnalyzeResult | null;
   runsRemaining: number;
   runsLimit: number;
+  isSignedIn: boolean;
 }) {
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">(
     savedResult ? "done" : "idle"
@@ -267,6 +269,10 @@ export function AnalyzerClient({
   }
 
   async function runAnalysis() {
+    // Guests can't run the analyzer — the UI should route them to sign-in
+    // rather than here, but guard anyway.
+    if (!isSignedIn) return;
+
     // Guard client-side too, so a used-up user never fires a doomed request.
     if (outOfRuns) {
       setShowLimitModal(true);
@@ -358,18 +364,34 @@ export function AnalyzerClient({
 
         {status === "idle" && (
           <div className="mt-6 animate-fade-up" style={{ animationDelay: "0.2s" }}>
-            <button
-              onClick={runAnalysis}
-              disabled={!hasData || outOfRuns}
-              className="w-full rounded-2xl bg-forest px-6 py-4 text-base font-semibold text-white transition-all hover:bg-forest-light disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Analyze my application
-            </button>
-            <p className="mt-3 text-center text-xs text-text-tertiary">
-              {outOfRuns
-                ? "You're out of runs for this month. Come back soon!"
-                : `${remaining} of ${runsLimit} runs left this month`}
-            </p>
+            {isSignedIn ? (
+              <>
+                <button
+                  onClick={runAnalysis}
+                  disabled={!hasData || outOfRuns}
+                  className="w-full rounded-2xl bg-forest px-6 py-4 text-base font-semibold text-white transition-all hover:bg-forest-light disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Analyze my application
+                </button>
+                <p className="mt-3 text-center text-xs text-text-tertiary">
+                  {outOfRuns
+                    ? "You're out of runs for this month. Come back soon!"
+                    : `${remaining} of ${runsLimit} runs left this month`}
+                </p>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/sign-in"
+                  className="block w-full rounded-2xl bg-forest px-6 py-4 text-center text-base font-semibold text-white transition-all hover:bg-forest-light"
+                >
+                  Sign in to run the analyzer
+                </Link>
+                <p className="mt-3 text-center text-xs text-text-tertiary">
+                  Sign in with Google to analyze your application.
+                </p>
+              </>
+            )}
           </div>
         )}
 

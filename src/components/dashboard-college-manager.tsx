@@ -35,6 +35,9 @@ type DashboardCollegeManagerProps = {
   initialDeadlineSuggestions: Record<string, DeadlineSuggestion[]>;
   defaultIntendedMajor: string;
   savedAnalysis: AnalyzeResult | null;
+  analysisRunsRemaining: number;
+  analysisRunsLimit: number;
+  isSignedIn: boolean;
   personalStatementDraft: PersonalStatementDraft;
   searchCollegeOptions: (query: string) => Promise<SearchCollegeActionState>;
   addCollegeAction: (formData: FormData) => Promise<AddCollegeActionState>;
@@ -65,6 +68,9 @@ export function DashboardCollegeManager({
   initialDeadlineSuggestions,
   defaultIntendedMajor,
   savedAnalysis,
+  analysisRunsRemaining,
+  analysisRunsLimit,
+  isSignedIn,
   personalStatementDraft,
   searchCollegeOptions,
   addCollegeAction,
@@ -240,7 +246,12 @@ export function DashboardCollegeManager({
       </section>
 
       <section className="mt-5 grid min-w-0 gap-5 xl:grid-cols-2">
-        <DashboardAngleAnalyzer savedResult={savedAnalysis} />
+        <DashboardAngleAnalyzer
+          savedResult={savedAnalysis}
+          runsRemaining={analysisRunsRemaining}
+          runsLimit={analysisRunsLimit}
+          isSignedIn={isSignedIn}
+        />
         <PersonalStatementCard draft={personalStatementDraft} />
       </section>
 
