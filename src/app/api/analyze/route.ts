@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { getUserProfileData } from "@/lib/profile";
+import { MAX_ANALYSIS_RUNS } from "@/lib/usage";
 import type { Activity, Honor } from "@/lib/profile";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -199,6 +200,15 @@ export async function POST() {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
 
+  // Anonymous/guest sessions don't count as "signed in" — block them so they
+  // can't burn tokens (and can't reset their quota by clearing cookies).
+  if (user.is_anonymous) {
+    return NextResponse.json(
+      { error: "not_signed_in", message: "Sign in to run the analyzer." },
+      { status: 401 }
+    );
+  }
+
   const profile = await getUserProfileData(user.id);
 
   if (!profile.activities.length && !profile.honors.length) {
@@ -208,6 +218,32 @@ export async function POST() {
           "Add at least one activity or honor to your profile before running the analyzer.",
       },
       { status: 400 }
+    );
+  }
+
+  // Reserve one run for this month before spending any tokens. This is
+  // atomic in the DB, so double-clicks / concurrent requests can't slip
+  // past the quota.
+  const { data: runCount, error: usageError } = await supabase.rpc(
+    "consume_analysis_run",
+    { max_runs: MAX_ANALYSIS_RUNS }
+  );
+
+  if (usageError) {
+    console.error("consume_analysis_run error:", usageError);
+    return NextResponse.json(
+      { error: "Could not verify your usage. Please try again." },
+      { status: 500 }
+    );
+  }
+
+  if (runCount === -1) {
+    return NextResponse.json(
+      {
+        error: "out_of_runs",
+        message: `You've used all ${MAX_ANALYSIS_RUNS} analyzer runs for this month.`,
+      },
+      { status: 429 }
     );
   }
 

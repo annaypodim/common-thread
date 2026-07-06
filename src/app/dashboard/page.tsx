@@ -5,6 +5,7 @@ import { cacheKey, getCachedDeadlinesByName, getCollegeDeadlineSuggestions } fro
 import type { DeadlineSuggestion } from "@/lib/deadline-lookup";
 import { getUserProfileData, hasAnyProfileData } from "@/lib/profile";
 import { getSavedAnalysis } from "@/lib/analysis";
+import { getAnalysisUsage } from "@/lib/usage";
 import { getPersonalStatementDraft } from "@/lib/personal-statement";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -16,12 +17,13 @@ import { SaveWorkPrompt } from "@/components/save-work-prompt";
 export default async function Dashboard() {
   const user = await requireUser();
   const profile = await getUserProfileData(user.id);
-  const [initialCollegeSuggestions, savedColleges, savedAnalysis, savedDeadlines, personalStatementDraft] = await Promise.all([
+  const [initialCollegeSuggestions, savedColleges, savedAnalysis, savedDeadlines, personalStatementDraft, analysisUsage] = await Promise.all([
     searchColleges("", 8),
     getUserSavedColleges(user.id),
     getSavedAnalysis(user.id),
     getUserDeadlines(user.id),
     getPersonalStatementDraft(user.id),
+    getAnalysisUsage(user.id),
   ]);
 
   // Seed already-cached rounds so the dashboard shows them instantly without a
@@ -235,6 +237,9 @@ export default async function Dashboard() {
           initialDeadlineSuggestions={initialDeadlineSuggestions}
           defaultIntendedMajor={profile.intendedMajors}
           savedAnalysis={savedAnalysis}
+          analysisRunsRemaining={analysisUsage.remaining}
+          analysisRunsLimit={analysisUsage.limit}
+          isSignedIn={!user.is_anonymous}
           personalStatementDraft={personalStatementDraft}
           searchCollegeOptions={searchCollegeOptions}
           addCollegeAction={addCollege}

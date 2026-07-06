@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { getUserProfileData, hasAnyProfileData } from "@/lib/profile";
+import { getAnalysisUsage } from "@/lib/usage";
 import { AnalyzerClient } from "@/components/analyzer-client";
 import { WorkspaceLayout } from "@/components/workspace-layout";
 import { getSavedAnalysis } from "@/lib/analysis";
@@ -7,9 +8,10 @@ import { SaveWorkPrompt } from "@/components/save-work-prompt";
 
 export default async function Analyzer() {
   const user = await requireUser();
-  const [profile, savedResult] = await Promise.all([
+  const [profile, savedResult, usage] = await Promise.all([
     getUserProfileData(user.id),
     getSavedAnalysis(user.id),
+    getAnalysisUsage(user.id),
   ]);
 
   const hasData = hasAnyProfileData(profile);
@@ -25,6 +27,9 @@ export default async function Analyzer() {
           profile={profile}
           hasData={hasData}
           savedResult={savedResult}
+          runsRemaining={usage.remaining}
+          runsLimit={usage.limit}
+          isSignedIn={!user.is_anonymous}
         />
       </WorkspaceLayout>
       <SaveWorkPrompt

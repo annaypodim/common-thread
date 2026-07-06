@@ -237,10 +237,16 @@ export function AnalyzerClient({
   profile,
   hasData,
   savedResult,
+  runsRemaining,
+  runsLimit,
+  isSignedIn,
 }: {
   profile: UserProfileData;
   hasData: boolean;
   savedResult: AnalyzeResult | null;
+  runsRemaining: number;
+  runsLimit: number;
+  isSignedIn: boolean;
 }) {
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">(
     savedResult ? "done" : "idle"
@@ -248,7 +254,11 @@ export function AnalyzerClient({
   const [currentStep, setCurrentStep] = useState(0);
   const [result, setResult] = useState<AnalyzeResult | null>(savedResult);
   const [errorMsg, setErrorMsg] = useState("");
+  const [remaining, setRemaining] = useState(runsRemaining);
+  const [showLimitModal, setShowLimitModal] = useState(false);
   const stepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const outOfRuns = remaining <= 0;
 
   function advanceStep(step: number) {
     if (step >= STEPS.length - 1) return;
@@ -259,6 +269,16 @@ export function AnalyzerClient({
   }
 
   async function runAnalysis() {
+    // Guests can't run the analyzer — the UI should route them to sign-in
+    // rather than here, but guard anyway.
+    if (!isSignedIn) return;
+
+    // Guard client-side too, so a used-up user never fires a doomed request.
+    if (outOfRuns) {
+      setShowLimitModal(true);
+      return;
+    }
+
     setStatus("loading");
     setCurrentStep(0);
     setResult(null);
@@ -271,12 +291,21 @@ export function AnalyzerClient({
 
       if (stepTimerRef.current) clearTimeout(stepTimerRef.current);
 
+      if (res.status === 429 || data.error === "out_of_runs") {
+        setRemaining(0);
+        setShowLimitModal(true);
+        setStatus(result ? "done" : "idle");
+        return;
+      }
+
       if (!res.ok) {
         setErrorMsg(data.error ?? "Something went wrong.");
         setStatus("error");
         return;
       }
 
+      // A run was successfully consumed on the server.
+      setRemaining((r) => Math.max(0, r - 1));
       setCurrentStep(STEPS.length);
       setResult(data as AnalyzeResult);
       setStatus("done");
@@ -335,13 +364,34 @@ export function AnalyzerClient({
 
         {status === "idle" && (
           <div className="mt-6 animate-fade-up" style={{ animationDelay: "0.2s" }}>
-            <button
-              onClick={runAnalysis}
-              disabled={!hasData}
-              className="w-full rounded-2xl bg-forest px-6 py-4 text-base font-semibold text-white transition-all hover:bg-forest-light disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Analyze my application
-            </button>
+            {isSignedIn ? (
+              <>
+                <button
+                  onClick={runAnalysis}
+                  disabled={!hasData || outOfRuns}
+                  className="w-full rounded-2xl bg-forest px-6 py-4 text-base font-semibold text-white transition-all hover:bg-forest-light disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Analyze my application
+                </button>
+                <p className="mt-3 text-center text-xs text-text-tertiary">
+                  {outOfRuns
+                    ? "You're out of runs for this month. Come back soon!"
+                    : `${remaining} of ${runsLimit} runs left this month`}
+                </p>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/sign-in"
+                  className="block w-full rounded-2xl bg-forest px-6 py-4 text-center text-base font-semibold text-white transition-all hover:bg-forest-light"
+                >
+                  Sign in to run the analyzer
+                </Link>
+                <p className="mt-3 text-center text-xs text-text-tertiary">
+                  Sign in with Google to analyze your application.
+                </p>
+              </>
+            )}
           </div>
         )}
 
@@ -379,12 +429,19 @@ export function AnalyzerClient({
                   </p>
                 )}
               </div>
-              <button
-                onClick={runAnalysis}
-                className="text-sm text-text-secondary hover:text-foreground underline underline-offset-2 transition-colors"
-              >
-                Re-analyze
-              </button>
+              <div className="flex flex-col items-end gap-0.5">
+                <button
+                  onClick={runAnalysis}
+                  className="text-sm text-text-secondary hover:text-foreground underline underline-offset-2 transition-colors"
+                >
+                  Re-analyze
+                </button>
+                <span className="text-xs text-text-tertiary">
+                  {outOfRuns
+                    ? "No runs left this month"
+                    : `${remaining} of ${runsLimit} runs left`}
+                </span>
+              </div>
             </div>
             {result.angles.map((angle, i) => (
               <AngleCard key={angle.title} angle={angle} rank={i} />
@@ -392,6 +449,39 @@ export function AnalyzerClient({
           </div>
         )}
       </div>
+
+      {showLimitModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={() => setShowLimitModal(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl animate-fade-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-sage/15">
+              <span className="text-2xl" aria-hidden>
+                🌱
+              </span>
+            </div>
+            <h2 className="mt-4 text-xl font-semibold font-serif text-foreground">
+              Out of re-runs
+            </h2>
+            <p className="mt-2 text-sm text-text-secondary">
+              You&rsquo;ve used all {runsLimit} analyzer runs for this month.
+              Come back soon!
+            </p>
+            <button
+              onClick={() => setShowLimitModal(false)}
+              className="mt-5 w-full rounded-xl bg-forest px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-forest-light"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
