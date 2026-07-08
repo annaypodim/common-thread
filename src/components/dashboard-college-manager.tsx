@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { type FormEvent, useEffect, useState, useTransition } from "react";
 import type { CollegeRecord, SavedCollege } from "@/lib/colleges";
+import { slugifyCollege } from "@/lib/college-format";
 import type { AnalyzeResult } from "@/app/api/analyze/route";
 import { DashboardAngleAnalyzer } from "@/components/dashboard-angle-analyzer";
 import { PersonalStatementCard } from "@/components/personal-statement-card";
@@ -52,10 +53,6 @@ type DashboardCollegeManagerProps = {
     formData: FormData
   ) => Promise<{ error?: string; success?: boolean }>;
 };
-
-function slugifyCollege(name: string) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-}
 
 function toTitleCase(str: string) {
   return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
