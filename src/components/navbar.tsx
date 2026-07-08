@@ -23,16 +23,6 @@ export async function Navbar() {
             </span>
             <SignOutButton />
           </>
-        ) : user?.is_anonymous ? (
-          <>
-            <span className="hidden text-base text-white/60 sm:block">Guest</span>
-            <Link
-              href="/sign-in"
-              className="text-base text-white/85 hover:text-white transition-colors nav-link"
-            >
-              save your work
-            </Link>
-          </>
         ) : (
           <Link
             href="/sign-in"

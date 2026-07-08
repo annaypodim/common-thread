@@ -14,9 +14,9 @@ export async function GET(request: Request) {
     }
   }
 
-  // A guest tried to link a Google account that already belongs to another
-  // account. We don't merge guest data into the existing account (for now), so
-  // send them to sign-in to log into that existing account instead.
+  // A stale guest-link flow can still report that the Google account already
+  // belongs to another user. New sign-in attempts use normal OAuth directly, so
+  // this branch is only a fallback for old/in-flight redirects.
   const errorCode = searchParams.get("error_code") ?? "";
   const errorDescription = searchParams.get("error_description") ?? "";
   const isIdentityConflict =
