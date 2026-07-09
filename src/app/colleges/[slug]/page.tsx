@@ -15,10 +15,6 @@ import { getUserSavedColleges } from "@/lib/colleges";
 import { getUserProfileData } from "@/lib/profile";
 import { CollegeResearchWorkspace } from "@/components/college-research-workspace";
 
-function toTitleCase(str: string) {
-  return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 export default async function CollegeWorkspacePage({
   params,
 }: {
@@ -92,26 +88,12 @@ export default async function CollegeWorkspacePage({
   return (
     <div className="flex flex-1 bg-ivory px-4 py-6 sm:px-6 lg:px-8">
       <main className="mx-auto w-full max-w-6xl space-y-5">
-        <section className="rounded-2xl border border-border-soft bg-white p-5 sm:p-6">
-          <Link href="/dashboard" className="text-sm font-medium text-forest hover:text-forest-light">
-            Back to Dashboard
-          </Link>
-          <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest">College Workspace</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
-                {toTitleCase(savedCollege.collegeName)}
-              </h1>
-              <p className="mt-2 text-sm text-text-secondary">
-                {[savedCollege.city && toTitleCase(savedCollege.city), savedCollege.state].filter(Boolean).join(", ") ||
-                  "Location not saved"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-border-soft bg-ivory/70 px-4 py-3 text-sm text-text-secondary">
-              Intended major: <span className="font-medium text-foreground">{savedCollege.intendedMajor || profile.intendedMajors || "Not set"}</span>
-            </div>
-          </div>
-        </section>
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border-soft bg-white px-4 py-2 text-sm font-medium text-forest transition-colors hover:bg-ivory hover:text-forest-light"
+        >
+          <span aria-hidden>←</span> Back to Dashboard
+        </Link>
 
         <CollegeResearchWorkspace
           college={savedCollege}

@@ -1,8 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 
 export const collegeResearchSectionKeys = [
-  "collegeOffers",
+  "classes",
+  "professors",
+  "labs",
+  "clubs",
+  "otherResources",
   "backgroundConnections",
+  "synthesis",
 ] as const;
 
 export type CollegeResearchSectionKey = (typeof collegeResearchSectionKeys)[number];
@@ -27,8 +32,13 @@ export type CollegeResearchDocument = {
 };
 
 const emptySections: CollegeResearchSections = {
-  collegeOffers: "",
+  classes: "",
+  professors: "",
+  labs: "",
+  clubs: "",
+  otherResources: "",
   backgroundConnections: "",
+  synthesis: "",
 };
 
 function isMissingResearchTable(message: string) {

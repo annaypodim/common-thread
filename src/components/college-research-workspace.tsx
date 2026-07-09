@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useMemo, useState, useTransition } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type {
   CollegeResearchChatMessage,
   CollegeResearchDocument,
@@ -27,44 +27,63 @@ type CollegeResearchWorkspaceProps = {
   ) => Promise<ResearchActionState>;
 };
 
-type SectionConfig = {
+type FieldConfig = {
   key: CollegeResearchSectionKey;
   label: string;
-  helperTitle: string;
   placeholder: string;
-  researchChecklist: string[];
+  fullWidth?: boolean;
 };
 
-const sectionConfigs: SectionConfig[] = [
+const brainstormFields: FieldConfig[] = [
   {
-    key: "collegeOffers",
-    label: "What this college offers",
-    helperTitle: "Research targets",
-    placeholder:
-      "Specific programs, classes, professors, labs, clubs, institutes, or campus resources I found...",
-    researchChecklist: [
-      "Courses, professors, labs, institutes, or research projects",
-      "Clubs, communities, service groups, publications, or maker spaces",
-      "Advising, first-year programs, study abroad, or career resources",
-    ],
+    key: "classes",
+    label: "Classes & courses",
+    placeholder: "Course names, sequences, or programs that fit your interests...",
   },
   {
-    key: "backgroundConnections",
-    label: "How my background connects",
-    helperTitle: "Make the connection",
-    placeholder:
-      "This connects to my activity in..., my interest in..., and my goal of...",
-    researchChecklist: [
-      "Activities, honors, jobs, family responsibilities, or projects",
-      "Skills, questions, or values you have already developed",
-      "Moments from your profile that make the college evidence relevant",
-    ],
+    key: "professors",
+    label: "Professors",
+    placeholder: "Faculty whose research or teaching connects to your goals...",
+  },
+  {
+    key: "labs",
+    label: "Labs & research",
+    placeholder: "Research groups, labs, institutes, or projects to join...",
+  },
+  {
+    key: "clubs",
+    label: "Clubs & communities",
+    placeholder: "Clubs, publications, service groups, maker spaces...",
+  },
+  {
+    key: "otherResources",
+    label: "Other resources",
+    placeholder: "Advising, first-year programs, study abroad, careers...",
   },
 ];
 
+const synthesisField: FieldConfig = {
+  key: "synthesis",
+  label: "Put it all together",
+  placeholder:
+    "Pull your bullets into a few clear paragraphs: what draws you to this college, the specific things you found, and how they connect to who you are and what you want to do.",
+};
+
+const researchTargets = [
+  "Courses, professors, labs, institutes, or research projects",
+  "Clubs, communities, service groups, publications, or maker spaces",
+  "Advising, first-year programs, study abroad, or career resources",
+  "Your own activities, honors, skills, and goals that connect to them",
+];
+
 const emptySections: CollegeResearchSections = {
-  collegeOffers: "",
+  classes: "",
+  professors: "",
+  labs: "",
+  clubs: "",
+  otherResources: "",
   backgroundConnections: "",
+  synthesis: "",
 };
 
 function toTitleCase(str: string) {
@@ -97,38 +116,32 @@ function summarizeProfile(profile: UserProfileData) {
 function buildAssistantReply({
   college,
   profile,
-  activeSection,
   sections,
   studentMessage,
 }: {
   college: SavedCollege;
   profile: UserProfileData;
-  activeSection: SectionConfig;
   sections: CollegeResearchSections;
   studentMessage?: string;
 }) {
   const profileSummary = summarizeProfile(profile);
   const major = college.intendedMajor || profileSummary.majors || "your intended academic direction";
-  const collegeOffersNotes = sections.collegeOffers.trim();
+  const offerNotes = brainstormFields
+    .filter((field) => field.key !== "backgroundConnections")
+    .map((field) => sections[field.key].trim())
+    .filter(Boolean)
+    .join(" ");
   const activityText = profileSummary.activities.length
     ? `Your profile already points to ${profileSummary.activities.join(", ")}.`
-    : "Your profile activities are still light here, so use this section to name the experiences you want colleges to understand.";
+    : "Your profile activities are still light here, so name the experiences you want colleges to understand.";
   const messageLead = studentMessage?.trim()
     ? `Based on what you wrote, look for details you can verify on ${toTitleCase(college.collegeName)}'s site.`
     : `For ${toTitleCase(college.collegeName)}, look for one concrete detail tied to ${major}.`;
+  const connectionNudge = offerNotes
+    ? "Then take one of the details you listed and connect it to your experience, interests, or goals."
+    : "Start with one specific program, club, lab, class, or resource, then connect it to your background.";
 
-  if (activeSection.key === "collegeOffers") {
-    return `${messageLead} Good places to check are department pages, course catalogs, research labs, institutes, student clubs, honors programs, advising pages, and campus project groups. Add only the details that feel relevant enough to use later.`;
-  }
-
-  if (activeSection.key === "backgroundConnections") {
-    const collegeEvidence = collegeOffersNotes
-      ? "Use one of the college details you already listed and connect it to your experience, interests, or goals."
-      : "If this feels hard, first add one specific program, club, lab, class, or resource under what the college offers.";
-    return `${activityText} ${collegeEvidence} A useful note can be simple: "I have done X, so Y at ${toTitleCase(college.collegeName)} would help me explore Z."`;
-  }
-
-  return `${messageLead} Start with programs, clubs, labs, courses, professors, institutes, or campus resources. Then use the connection section to crystalize why those details matter for you.`;
+  return `${messageLead} ${activityText} ${connectionNudge} A useful note can be simple: "I have done X, so Y at ${toTitleCase(college.collegeName)} would help me explore Z."`;
 }
 
 export function CollegeResearchWorkspace({
@@ -152,18 +165,26 @@ export function CollegeResearchWorkspace({
           ),
         ]
   );
-  const [activeSectionKey, setActiveSectionKey] = useState<CollegeResearchSectionKey>("collegeOffers");
   const [studentMessage, setStudentMessage] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const activeSection = useMemo(
-    () => sectionConfigs.find((section) => section.key === activeSectionKey) ?? sectionConfigs[0],
-    [activeSectionKey]
-  );
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const completedSections = sectionConfigs.filter((section) => sections[section.key].trim()).length;
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [chatMessages]);
+
+  const location = useMemo(
+    () =>
+      [college.city && toTitleCase(college.city), college.state].filter(Boolean).join(", ") ||
+      "Location not saved",
+    [college.city, college.state]
+  );
+  const major = college.intendedMajor || profile.intendedMajors || "Not set";
+
+  const completedSections = brainstormFields.filter((field) => sections[field.key].trim()).length;
 
   const startDocument = () => {
     setErrorMessage("");
@@ -195,7 +216,7 @@ export function CollegeResearchWorkspace({
       setDocument(result.document);
       setSections(result.document.sections);
       setChatMessages(result.document.chatMessages);
-      setStatusMessage(nextStatus === "complete" ? "Document marked complete." : "Document saved.");
+      setStatusMessage(nextStatus === "complete" ? "Document marked complete." : "All changes saved.");
     });
   };
 
@@ -208,7 +229,6 @@ export function CollegeResearchWorkspace({
     const reply = buildAssistantReply({
       college,
       profile,
-      activeSection,
       sections,
       studentMessage: trimmedMessage,
     });
@@ -220,10 +240,16 @@ export function CollegeResearchWorkspace({
   if (!document) {
     return (
       <section className="rounded-2xl border border-border-soft bg-white p-5 sm:p-6">
-        <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest">College Workspace</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
+          {toTitleCase(college.collegeName)}
+        </h1>
+        <p className="mt-1 text-sm text-text-secondary">
+          {location} · Intended major: <span className="font-medium text-foreground">{major}</span>
+        </p>
+        <div className="mt-6 grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest">College Research</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight">Build a college connection document</h2>
+            <h2 className="text-xl font-semibold tracking-tight">Build a college connection document</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
               Create one saved document for this college with specific evidence and personal connections. This is planning
               material, not a finished essay.
@@ -245,92 +271,76 @@ export function CollegeResearchWorkspace({
 
   return (
     <section className="space-y-5">
-      <div className="rounded-2xl border border-border-soft bg-white p-5 sm:p-6">
+      {/* Merged single header: college identity + document status + Mark Complete */}
+      <header className="rounded-2xl border border-border-soft bg-white p-5 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest">College Research</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight">College connection document</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-              Add what the college offers, connect it to your background, and use the helper to crystalize what to research next.
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest">College Connection Document</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
+              {toTitleCase(college.collegeName)}
+            </h1>
+            <p className="mt-1 text-sm text-text-secondary">
+              {location} · Intended major: <span className="font-medium text-foreground">{major}</span>
             </p>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => saveDocument("drafting")}
-              disabled={isPending}
-              className="rounded-full border border-border-soft bg-white px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-ivory disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isPending ? "Saving..." : "Save Document"}
-            </button>
-            <button
-              type="button"
-              onClick={() => saveDocument("complete")}
-              disabled={isPending}
-              className="rounded-full bg-forest px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-forest-light disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Mark Complete
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => saveDocument("complete")}
+            disabled={isPending}
+            className="shrink-0 rounded-full bg-forest px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-forest-light disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Mark Complete
+          </button>
         </div>
         <div className="mt-4 flex flex-wrap gap-2 text-xs text-text-secondary">
-          <span className="rounded-full border border-border-soft bg-ivory px-3 py-1">{completedSections}/2 sections started</span>
+          <span className="rounded-full border border-border-soft bg-ivory px-3 py-1">
+            {completedSections}/{brainstormFields.length} brainstorm sections filled
+          </span>
           <span className="rounded-full border border-border-soft bg-ivory px-3 py-1">
             Status: {document.status === "complete" ? "Complete" : "Drafting"}
           </span>
-          {statusMessage && <span className="rounded-full border border-border-soft bg-white px-3 py-1 text-forest">{statusMessage}</span>}
-          {errorMessage && <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-red-700">{errorMessage}</span>}
+          <span className="rounded-full border border-border-soft bg-ivory px-3 py-1">
+            Updated {new Date(document.updatedAt).toLocaleDateString()}
+          </span>
         </div>
-      </div>
+      </header>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      {/* Brainstorming (bullet sections + advice) alongside the research helper */}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
         <div className="min-w-0 rounded-2xl border border-border-soft bg-white p-4 sm:p-5">
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {sectionConfigs.map((section) => (
-              <button
-                key={section.key}
-                type="button"
-                onClick={() => setActiveSectionKey(section.key)}
-                className={`shrink-0 rounded-full border px-3 py-2 text-xs font-medium transition-colors ${
-                  activeSectionKey === section.key
-                    ? "border-forest bg-forest text-white"
-                    : "border-border-soft bg-ivory text-text-secondary hover:bg-white"
-                }`}
-              >
-                {section.label}
-              </button>
+          <h2 className="text-lg font-semibold tracking-tight">Brainstorm</h2>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {brainstormFields.map((field) => (
+              <label key={field.key} className={`min-w-0 ${field.fullWidth ? "sm:col-span-2" : ""}`}>
+                <span className="text-sm font-semibold">{field.label}</span>
+                <textarea
+                  value={sections[field.key]}
+                  onChange={(event) =>
+                    setSections((current) => ({ ...current, [field.key]: event.target.value }))
+                  }
+                  placeholder={field.placeholder}
+                  className="mt-2 min-h-20 w-full resize-y rounded-xl border border-border-soft bg-ivory/60 p-3 text-sm leading-5 outline-none transition-colors placeholder:text-text-tertiary focus:border-forest focus:bg-white"
+                />
+              </label>
             ))}
           </div>
 
-          <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_16rem]">
-            <label className="min-w-0">
-              <span className="text-lg font-semibold">{activeSection.label}</span>
-              <textarea
-                value={sections[activeSection.key]}
-                onChange={(event) =>
-                  setSections((current) => ({ ...current, [activeSection.key]: event.target.value }))
-                }
-                placeholder={activeSection.placeholder}
-                className="mt-3 min-h-72 w-full resize-y rounded-xl border border-border-soft bg-ivory/60 p-4 text-sm leading-6 outline-none transition-colors placeholder:text-text-tertiary focus:border-forest focus:bg-white"
-              />
-            </label>
-
-            <aside className="rounded-xl border border-border-soft bg-ivory/70 p-4">
-              <h3 className="text-sm font-semibold">{activeSection.helperTitle}</h3>
-              <ul className="mt-3 space-y-2 text-sm leading-5 text-text-secondary">
-                {activeSection.researchChecklist.map((item) => (
-                  <li key={item} className="border-b border-border-soft pb-2 last:border-b-0 last:pb-0">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </aside>
+          {/* Brainstorming advice — what to look for — beneath the brainstorm section */}
+          <div className="mt-4 rounded-xl border border-border-soft bg-ivory/70 p-4">
+            <h3 className="text-sm font-semibold">What to look for</h3>
+            <ul className="mt-2 space-y-1.5 text-sm leading-5 text-text-secondary">
+              {researchTargets.map((item) => (
+                <li key={item}>· {item}</li>
+              ))}
+            </ul>
           </div>
         </div>
 
-        <aside className="rounded-2xl border border-border-soft bg-white p-4 sm:p-5">
+        {/* Research helper */}
+        <aside className="flex max-h-[36rem] flex-col rounded-2xl border border-border-soft bg-white p-4 sm:p-5">
           <h3 className="text-lg font-semibold">Research Helper</h3>
-          <div className="mt-4 max-h-[28rem] space-y-3 overflow-y-auto pr-1">
+          <div className="mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
             {chatMessages.map((message) => (
               <div
                 key={message.id}
@@ -341,6 +351,7 @@ export function CollegeResearchWorkspace({
                 {message.content}
               </div>
             ))}
+            <div ref={chatEndRef} />
           </div>
           <form onSubmit={askHelper} className="mt-4 space-y-2">
             <textarea
@@ -359,25 +370,35 @@ export function CollegeResearchWorkspace({
         </aside>
       </div>
 
-      <article className="rounded-2xl border border-border-soft bg-white p-5 sm:p-6">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest">Saved Document</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight">{toTitleCase(college.collegeName)} research notes</h2>
-          </div>
-          <p className="text-sm text-text-secondary">Updated {new Date(document.updatedAt).toLocaleDateString()}</p>
+      {/* Synthesis — larger box to put everything together, with the save action */}
+      <div className="rounded-2xl border border-border-soft bg-white p-4 sm:p-5">
+        <label className="block">
+          <span className="text-lg font-semibold tracking-tight">{synthesisField.label}</span>
+          <p className="mt-1 text-sm text-text-secondary">
+            Turn your brainstorm bullets into a clear write-up you can reuse in essays and applications.
+          </p>
+          <textarea
+            value={sections.synthesis}
+            onChange={(event) =>
+              setSections((current) => ({ ...current, synthesis: event.target.value }))
+            }
+            placeholder={synthesisField.placeholder}
+            className="mt-3 min-h-72 w-full resize-y rounded-xl border border-border-soft bg-ivory/60 p-4 text-sm leading-6 outline-none transition-colors placeholder:text-text-tertiary focus:border-forest focus:bg-white"
+          />
+        </label>
+        <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
+          {statusMessage && <span className="text-sm text-forest">{statusMessage}</span>}
+          {errorMessage && <span className="text-sm text-red-700">{errorMessage}</span>}
+          <button
+            type="button"
+            onClick={() => saveDocument("drafting")}
+            disabled={isPending}
+            className="rounded-full bg-forest px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-forest-light disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isPending ? "Saving..." : "Save Document"}
+          </button>
         </div>
-        <div className="mt-5 grid gap-4">
-          {sectionConfigs.map((section) => (
-            <section key={`${section.key}-preview`} className="rounded-xl border border-border-soft bg-ivory/50 p-4">
-              <h3 className="text-sm font-semibold text-foreground">{section.label}</h3>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-text-secondary">
-                {sections[section.key].trim() || "No notes yet."}
-              </p>
-            </section>
-          ))}
-        </div>
-      </article>
+      </div>
     </section>
   );
 }
