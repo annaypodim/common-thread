@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { type MouseEvent, useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { CollegeDeadline } from "@/lib/deadlines";
 import type { SavedCollege } from "@/lib/colleges";
 
@@ -23,6 +24,9 @@ type UpcomingDeadlinesProps = {
   lookupDeadlinesAction: (collegeName: string) => Promise<LookupActionState>;
   saveDeadlineAction: (formData: FormData) => Promise<SaveActionState>;
   removeDeadlineAction: (formData: FormData) => Promise<RemoveActionState>;
+  removeCollegeAction?: (college: SavedCollege) => void;
+  removingCollegeId?: string | null;
+  isRemovingCollege?: boolean;
   className?: string;
 };
 
@@ -69,6 +73,10 @@ function countdownLabel(days: number) {
   return `${days}d left`;
 }
 
+function slugifyCollege(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
 export function UpcomingDeadlines({
   savedColleges,
   initialDeadlines,
@@ -76,8 +84,12 @@ export function UpcomingDeadlines({
   lookupDeadlinesAction,
   saveDeadlineAction,
   removeDeadlineAction,
+  removeCollegeAction,
+  removingCollegeId = null,
+  isRemovingCollege = false,
   className = "",
 }: UpcomingDeadlinesProps) {
+  const router = useRouter();
   const [deadlines, setDeadlines] = useState(initialDeadlines);
   // Auto-found rounds per college id (undefined = not looked up yet). Seeded
   // from the server-side cache so already-known colleges don't re-search.
@@ -234,24 +246,17 @@ export function UpcomingDeadlines({
     }
   }
 
+  function stopCardClick(event: MouseEvent<HTMLElement>) {
+    event.stopPropagation();
+  }
+
   const collegesWithoutAny = savedColleges.length === 0;
 
   return (
-    <article
-      className={`min-w-0 rounded-2xl border border-border-soft bg-white p-4 sm:p-5 ${className}`}
-    >
-      <div>
-        <h3 className="text-lg font-semibold">Upcoming Deadlines</h3>
-        <p className="mt-1 text-sm text-text-secondary">
-          Pick the round you&rsquo;re applying to. Tap again to change your
-          mind.
-        </p>
-      </div>
-
-      <div className="mt-4 space-y-4">
+    <div className={`grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3 ${className}`}>
         {collegesWithoutAny && (
-          <div className="rounded-xl border border-dashed border-border-soft bg-ivory/50 p-3 text-sm text-text-secondary">
-            Add a college and its deadlines will show up here automatically.
+          <div className="rounded-xl border border-dashed border-border-soft bg-ivory/50 p-4 text-sm text-text-secondary md:col-span-2 xl:col-span-3">
+            No colleges added yet. Use the Add College button to start building your dashboard.
           </div>
         )}
 
@@ -272,32 +277,76 @@ export function UpcomingDeadlines({
           const canToggleOthers = hasSelection && (!lookedUp || otherCount > 0);
 
           const collapsedDecided = hasSelection && !isExpanded;
+          const location = [college.city && toTitleCase(college.city), college.state]
+            .filter(Boolean)
+            .join(", ");
+          const href = `/colleges/${slugifyCollege(college.collegeName)}`;
 
           return (
-            <div
+            <article
               key={college.id}
-              className="border-b border-border-soft pb-4 last:border-b-0 last:pb-0"
+              role="link"
+              tabIndex={0}
+              onClick={() => router.push(href)}
+              onKeyDown={(event) => {
+                if (event.target !== event.currentTarget) {
+                  return;
+                }
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  router.push(href);
+                }
+              }}
+              className="flex min-w-0 cursor-pointer flex-col rounded-xl border border-border-soft bg-ivory/60 p-4 transition-colors hover:border-forest/40 hover:bg-ivory"
             >
-              {/* Header: college name, plus the chosen round(s) when collapsed */}
-              <div className="flex items-center justify-between gap-2">
-                <p className="min-w-0 truncate text-sm font-semibold text-foreground">
-                  {toTitleCase(college.collegeName)}
-                  {collapsedDecided &&
-                    visibleRounds.map((r) => (
-                      <span
-                        key={r.label}
-                        className="ml-2 rounded-full bg-sage/15 px-2 py-0.5 text-xs font-medium text-forest"
-                      >
-                        {r.label}
-                      </span>
-                    ))}
-                </p>
-                {status === "loading" && (
-                  <span className="shrink-0 text-xs text-text-tertiary">
-                    Finding deadlines…
-                  </span>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="min-w-0 break-words text-base font-semibold text-foreground">
+                    {toTitleCase(college.collegeName)}
+                  </p>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    {location || "Location unknown"}
+                  </p>
+                </div>
+                {removeCollegeAction && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      stopCardClick(event);
+                      removeCollegeAction(college);
+                    }}
+                    disabled={isRemovingCollege && removingCollegeId === college.id}
+                    className="shrink-0 rounded-full border border-border-soft bg-white/70 px-3 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isRemovingCollege && removingCollegeId === college.id ? "Removing..." : "Remove"}
+                  </button>
                 )}
               </div>
+
+              <p className="mt-3 text-sm text-text-secondary">
+                Major <span className="text-foreground">{college.intendedMajor || "—"}</span>
+              </p>
+
+              <div className="mt-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="min-w-0 truncate text-sm font-semibold text-foreground">
+                    Application deadline
+                    {collapsedDecided &&
+                      visibleRounds.map((r) => (
+                        <span
+                          key={r.label}
+                          className="ml-2 rounded-full bg-sage/15 px-2 py-0.5 text-xs font-medium text-forest"
+                        >
+                          {r.label}
+                        </span>
+                      ))}
+                </p>
+                  {status === "loading" && (
+                    <span className="shrink-0 text-xs text-text-tertiary">
+                      Finding deadlines…
+                    </span>
+                  )}
+                </div>
 
               {collapsedDecided ? (
                 /* Decided + collapsed: lead with the bold date */
@@ -317,6 +366,7 @@ export function UpcomingDeadlines({
                               target="_blank"
                               rel="noopener noreferrer"
                               title="Verify on the official admissions site"
+                              onClick={stopCardClick}
                               className="text-sm font-normal text-white/70 hover:text-white"
                             >
                               ↗
@@ -342,7 +392,10 @@ export function UpcomingDeadlines({
                         <div key={key} className="flex min-w-0 w-full items-center sm:inline-flex sm:w-auto">
                           <button
                             type="button"
-                            onClick={() => toggleRound(college, round)}
+                            onClick={(event) => {
+                              stopCardClick(event);
+                              toggleRound(college, round);
+                            }}
                             disabled={busyKey === key}
                             title={
                               selected
@@ -382,6 +435,7 @@ export function UpcomingDeadlines({
                               target="_blank"
                               rel="noopener noreferrer"
                               title="Verify on the official admissions site"
+                              onClick={stopCardClick}
                               className="ml-1 text-xs text-text-tertiary hover:text-forest"
                             >
                               ↗
@@ -398,7 +452,10 @@ export function UpcomingDeadlines({
               {canToggleOthers && (
                 <button
                   type="button"
-                  onClick={() => toggleExpand(college)}
+                  onClick={(event) => {
+                    stopCardClick(event);
+                    toggleExpand(college);
+                  }}
                   className="mt-2 text-xs font-medium text-forest underline underline-offset-2 hover:text-forest-light"
                 >
                   {isExpanded ? "Hide other rounds ▴" : "Show other rounds ▾"}
@@ -424,19 +481,22 @@ export function UpcomingDeadlines({
                       : "No deadlines found automatically."}{" "}
                     <button
                       type="button"
-                      onClick={() => fetchSuggestions(college)}
+                      onClick={(event) => {
+                        stopCardClick(event);
+                        fetchSuggestions(college);
+                      }}
                       className="font-medium text-forest underline underline-offset-2 hover:text-forest-light"
                     >
                       Retry
                     </button>
                   </p>
                 )}
-            </div>
+              </div>
+            </article>
           );
         })}
-      </div>
 
-      {error && <p className="mt-3 text-xs text-red-700">{error}</p>}
-    </article>
+      {error && <p className="text-xs text-red-700 md:col-span-2 xl:col-span-3">{error}</p>}
+    </div>
   );
 }
