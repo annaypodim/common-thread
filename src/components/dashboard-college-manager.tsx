@@ -197,7 +197,7 @@ export function DashboardCollegeManager({
   return (
     <>
       <section className="min-w-0 sm:mt-4">
-        <article className="min-w-0 rounded-2xl border border-border-soft bg-white p-4 sm:p-5">
+        <article className="flex min-w-0 flex-col rounded-2xl border border-border-soft bg-white p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h3 className="text-lg font-semibold">Active Applications</h3>
@@ -213,7 +213,7 @@ export function DashboardCollegeManager({
           </div>
 
           <UpcomingDeadlines
-            className="mt-4"
+            className="mt-4 max-h-[22rem] min-h-0 overflow-y-auto pr-1"
             savedColleges={savedColleges}
             initialDeadlines={initialDeadlines}
             initialSuggestions={initialDeadlineSuggestions}
