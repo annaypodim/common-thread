@@ -10,6 +10,7 @@ import type { PersonalStatementDraft } from "@/lib/personal-statement-types";
 import type { CollegeDeadline } from "@/lib/deadlines";
 import {
   UpcomingDeadlines,
+  type ActiveApplicationsViewMode,
   type DeadlineSuggestion,
 } from "@/components/upcoming-deadlines";
 
@@ -89,6 +90,8 @@ export function DashboardCollegeManager({
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState(initialCollegeSuggestions);
   const [queuedColleges, setQueuedColleges] = useState<QueuedCollege[]>([]);
+  const [activeApplicationsView, setActiveApplicationsView] =
+    useState<ActiveApplicationsViewMode>("cards");
   const [toastMessage, setToastMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -259,22 +262,45 @@ export function DashboardCollegeManager({
     <>
       <section className="min-w-0 sm:mt-4">
         <article className="flex min-w-0 flex-col rounded-2xl border border-border-soft bg-white p-4 sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h3 className="text-lg font-semibold">Active Applications</h3>
               <p className="mt-1 text-sm text-text-secondary">Tap any college to open its supplementals and research workspace.</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(true)}
-              className="w-full rounded-full bg-forest px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-forest-light sm:w-auto sm:py-2"
-            >
-              Add College
-            </button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div
+                className="grid grid-cols-2 rounded-full border border-border-soft bg-ivory/80 p-1"
+                aria-label="Active applications view"
+              >
+                {(["cards", "spreadsheet"] as const).map((view) => (
+                  <button
+                    key={view}
+                    type="button"
+                    onClick={() => setActiveApplicationsView(view)}
+                    aria-pressed={activeApplicationsView === view}
+                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                      activeApplicationsView === view
+                        ? "bg-white text-forest shadow-sm"
+                        : "text-text-secondary hover:text-foreground"
+                    }`}
+                  >
+                    {view === "cards" ? "Cards" : "Spreadsheet"}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="w-full rounded-full bg-forest px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-forest-light sm:w-auto sm:py-2"
+              >
+                Add College
+              </button>
+            </div>
           </div>
 
           <UpcomingDeadlines
             className="mt-4 max-h-[22rem] min-h-0 overflow-y-auto pr-1"
+            viewMode={activeApplicationsView}
             savedColleges={savedColleges}
             initialDeadlines={initialDeadlines}
             initialSuggestions={initialDeadlineSuggestions}

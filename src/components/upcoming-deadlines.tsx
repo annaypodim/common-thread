@@ -27,8 +27,11 @@ type UpcomingDeadlinesProps = {
   removeCollegeAction?: (college: SavedCollege) => void;
   removingCollegeId?: string | null;
   isRemovingCollege?: boolean;
+  viewMode?: ActiveApplicationsViewMode;
   className?: string;
 };
+
+export type ActiveApplicationsViewMode = "cards" | "spreadsheet";
 
 // A round shown under a college: a suggested or saved application deadline.
 // `savedId` is set when the student has selected this round (it's persisted).
@@ -87,6 +90,7 @@ export function UpcomingDeadlines({
   removeCollegeAction,
   removingCollegeId = null,
   isRemovingCollege = false,
+  viewMode = "cards",
   className = "",
 }: UpcomingDeadlinesProps) {
   const router = useRouter();
@@ -251,6 +255,172 @@ export function UpcomingDeadlines({
   }
 
   const collegesWithoutAny = savedColleges.length === 0;
+
+  if (viewMode === "spreadsheet") {
+    return (
+      <div className={`min-w-0 ${className}`}>
+        {collegesWithoutAny ? (
+          <div className="rounded-xl border border-dashed border-border-soft bg-ivory/50 p-4 text-sm text-text-secondary">
+            No colleges added yet. Use the Add College button to start building your dashboard.
+          </div>
+        ) : (
+          <div className="min-w-0 overflow-x-auto rounded-xl border border-border-soft bg-white">
+            <table className="min-w-[980px] w-full border-collapse text-left text-sm">
+              <thead className="sticky top-0 z-10 bg-ivory text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                <tr>
+                  <th scope="col" className="w-28 border-b border-border-soft px-3 py-3">
+                    Remove
+                  </th>
+                  <th scope="col" className="border-b border-border-soft px-3 py-3">
+                    University
+                  </th>
+                  <th scope="col" className="border-b border-border-soft px-3 py-3">
+                    Location
+                  </th>
+                  <th scope="col" className="border-b border-border-soft px-3 py-3">
+                    Major
+                  </th>
+                  <th scope="col" className="border-b border-border-soft px-3 py-3">
+                    Application Round
+                  </th>
+                  <th scope="col" className="border-b border-border-soft px-3 py-3">
+                    Application Deadline
+                  </th>
+                  <th scope="col" className="border-b border-border-soft px-3 py-3">
+                    Status
+                  </th>
+                  <th scope="col" className="border-b border-border-soft px-3 py-3">
+                    Source
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {savedColleges.map((college) => {
+                  const rounds = roundsFor(college);
+                  const status = lookupStatus[college.id];
+                  const lookedUp = suggestions[college.id] !== undefined;
+                  const selectedRounds = rounds.filter((round) => round.savedId);
+                  const primaryRound = selectedRounds[0] ?? rounds[0];
+                  const location = [college.city && toTitleCase(college.city), college.state]
+                    .filter(Boolean)
+                    .join(", ");
+                  const href = `/colleges/${slugifyCollege(college.collegeName)}`;
+
+                  return (
+                    <tr
+                      key={college.id}
+                      className="border-b border-border-soft/80 last:border-b-0 hover:bg-ivory/45"
+                    >
+                      <td className="align-top px-3 py-3">
+                        {removeCollegeAction && (
+                          <button
+                            type="button"
+                            onClick={() => removeCollegeAction(college)}
+                            disabled={isRemovingCollege && removingCollegeId === college.id}
+                            className="rounded-full border border-border-soft bg-white px-3 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-ivory disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {isRemovingCollege && removingCollegeId === college.id ? "Removing..." : "Remove"}
+                          </button>
+                        )}
+                      </td>
+                      <td className="max-w-64 align-top px-3 py-3">
+                        <button
+                          type="button"
+                          onClick={() => router.push(href)}
+                          className="break-words text-left font-semibold text-foreground hover:text-forest"
+                        >
+                          {toTitleCase(college.collegeName)}
+                        </button>
+                      </td>
+                      <td className="whitespace-nowrap align-top px-3 py-3 text-text-secondary">
+                        {location || "Location unknown"}
+                      </td>
+                      <td className="max-w-56 align-top px-3 py-3 text-text-secondary">
+                        <span className="line-clamp-2">{college.intendedMajor || "—"}</span>
+                      </td>
+                      <td className="min-w-56 align-top px-3 py-3">
+                        {rounds.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {rounds.map((round) => {
+                              const key = `${college.id}|${round.label}|${round.dueDate}`;
+                              const selected = round.savedId !== null;
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => toggleRound(college, round)}
+                                  disabled={busyKey === key}
+                                  title={selected ? "Selected - tap to remove" : "Tap to select this round"}
+                                  className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
+                                    selected
+                                      ? "border-forest bg-forest text-white hover:bg-forest-light"
+                                      : "border-border-soft bg-white text-text-secondary hover:border-forest hover:text-forest"
+                                  }`}
+                                >
+                                  {selected ? round.label : `+ ${round.label}`}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-text-tertiary">
+                            {status === "loading" ? "Finding rounds..." : "No rounds selected"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap align-top px-3 py-3 font-medium text-foreground">
+                        {primaryRound ? formatDueDate(primaryRound.dueDate) : "—"}
+                      </td>
+                      <td className="whitespace-nowrap align-top px-3 py-3">
+                        {primaryRound ? (
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              selectedRounds.length > 0
+                                ? "bg-sage/15 text-forest"
+                                : "bg-ivory text-text-secondary"
+                            }`}
+                          >
+                            {countdownLabel(daysUntil(primaryRound.dueDate, now))}
+                          </span>
+                        ) : status === "error" ? (
+                          <button
+                            type="button"
+                            onClick={() => fetchSuggestions(college)}
+                            className="text-xs font-medium text-forest underline underline-offset-2 hover:text-forest-light"
+                          >
+                            Retry lookup
+                          </button>
+                        ) : lookedUp ? (
+                          <span className="text-xs text-text-tertiary">No deadline found</span>
+                        ) : (
+                          <span className="text-xs text-text-tertiary">Finding deadlines...</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap align-top px-3 py-3">
+                        {primaryRound?.sourceUrl ? (
+                          <a
+                            href={primaryRound.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-medium text-forest underline underline-offset-2 hover:text-forest-light"
+                          >
+                            Verify
+                          </a>
+                        ) : (
+                          <span className="text-xs text-text-tertiary">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
+      </div>
+    );
+  }
 
   return (
     <div className={`grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3 ${className}`}>
