@@ -311,10 +311,22 @@ export async function POST(request: Request) {
         send({ type: "done" });
       } catch (err) {
         console.error("College research chat error:", err);
-        send({
-          type: "error",
-          message: "The research helper hit an error. Please try again.",
-        });
+        // Surface the real cause instead of a generic message. Anthropic SDK
+        // errors carry a status + message (e.g. 401 bad key, 400 tool/model
+        // access, 529 overloaded) — hiding those makes the helper impossible
+        // to debug from the UI.
+        const status =
+          err && typeof err === "object" && "status" in err
+            ? (err as { status?: unknown }).status
+            : undefined;
+        const detail =
+          err instanceof Error ? err.message : typeof err === "string" ? err : "";
+        const message = detail
+          ? `The research helper hit an error${
+              typeof status === "number" ? ` (${status})` : ""
+            }: ${detail}`
+          : "The research helper hit an error. Please try again.";
+        send({ type: "error", message });
       } finally {
         controller.close();
       }
