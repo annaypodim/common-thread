@@ -54,3 +54,52 @@ create trigger set_user_colleges_updated_at
 before update on public.user_colleges
 for each row
 execute function public.set_user_colleges_updated_at();
+
+create table if not exists public.college_research_documents (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  user_college_id uuid not null references public.user_colleges(id) on delete cascade,
+  status text not null default 'drafting' check (status in ('drafting', 'complete')),
+  sections jsonb not null default '{}'::jsonb,
+  chat_messages jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_college_id)
+);
+
+create index if not exists college_research_documents_user_id_idx
+on public.college_research_documents(user_id);
+
+create index if not exists college_research_documents_user_college_id_idx
+on public.college_research_documents(user_college_id);
+
+alter table public.college_research_documents
+add column if not exists status text not null default 'drafting';
+
+alter table public.college_research_documents
+add column if not exists sections jsonb not null default '{}'::jsonb;
+
+alter table public.college_research_documents
+add column if not exists chat_messages jsonb not null default '[]'::jsonb;
+
+alter table public.college_research_documents enable row level security;
+
+drop policy if exists "Users manage own college research documents" on public.college_research_documents;
+create policy "Users manage own college research documents" on public.college_research_documents
+for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create or replace function public.set_college_research_documents_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists set_college_research_documents_updated_at on public.college_research_documents;
+create trigger set_college_research_documents_updated_at
+before update on public.college_research_documents
+for each row
+execute function public.set_college_research_documents_updated_at();
