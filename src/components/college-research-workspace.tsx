@@ -6,6 +6,7 @@ import type {
   CollegeResearchDocument,
   CollegeResearchSectionKey,
   CollegeResearchSections,
+  CollegeResearchSource,
 } from "@/lib/college-research";
 import type { SavedCollege } from "@/lib/colleges";
 import type { UserProfileData } from "@/lib/profile";
@@ -90,58 +91,58 @@ function toTitleCase(str: string) {
   return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function makeMessage(role: CollegeResearchChatMessage["role"], content: string) {
+function makeMessage(
+  role: CollegeResearchChatMessage["role"],
+  content: string,
+  sources?: CollegeResearchSource[]
+): CollegeResearchChatMessage {
   return {
     id: `${role}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     role,
     content,
     createdAt: new Date().toISOString(),
+    ...(sources && sources.length ? { sources } : {}),
   };
 }
 
-function summarizeProfile(profile: UserProfileData) {
-  const activityNames = profile.activities
-    .slice(0, 4)
-    .map((activity) => [activity.position_title, activity.organization].filter(Boolean).join(" at "))
-    .filter(Boolean);
-  const honorNames = profile.honors.slice(0, 3).map((honor) => honor.title).filter(Boolean);
+// Compact, plain-text summary of the student's profile for the AI helper to
+// tailor its suggestions to who they actually are.
+function buildProfileSummary(profile: UserProfileData) {
+  const lines: string[] = [];
+  const majors = profile.intendedMajors.trim();
+  if (majors) lines.push(`Intended major(s): ${majors}`);
+  if (profile.highSchool.trim()) lines.push(`High school: ${profile.highSchool.trim()}`);
 
-  return {
-    majors: profile.intendedMajors.trim(),
-    activities: activityNames,
-    honors: honorNames,
-  };
+  if (profile.activities.length) {
+    lines.push("Activities:");
+    for (const activity of profile.activities.slice(0, 8)) {
+      const label = [activity.position_title, activity.organization].filter(Boolean).join(" at ");
+      const detail = activity.description?.trim();
+      lines.push(`- ${label || "Activity"}${detail ? `: ${detail}` : ""}`);
+    }
+  }
+
+  if (profile.honors.length) {
+    lines.push("Honors:");
+    for (const honor of profile.honors.slice(0, 6)) {
+      const detail = honor.achievement_description?.trim();
+      lines.push(`- ${honor.title}${detail ? `: ${detail}` : ""}`);
+    }
+  }
+
+  return lines.join("\n");
 }
 
-function buildAssistantReply({
-  college,
-  profile,
-  sections,
-  studentMessage,
-}: {
-  college: SavedCollege;
-  profile: UserProfileData;
-  sections: CollegeResearchSections;
-  studentMessage?: string;
-}) {
-  const profileSummary = summarizeProfile(profile);
-  const major = college.intendedMajor || profileSummary.majors || "your intended academic direction";
-  const offerNotes = brainstormFields
-    .filter((field) => field.key !== "backgroundConnections")
-    .map((field) => sections[field.key].trim())
-    .filter(Boolean)
-    .join(" ");
-  const activityText = profileSummary.activities.length
-    ? `Your profile already points to ${profileSummary.activities.join(", ")}.`
-    : "Your profile activities are still light here, so name the experiences you want colleges to understand.";
-  const messageLead = studentMessage?.trim()
-    ? `Based on what you wrote, look for details you can verify on ${toTitleCase(college.collegeName)}'s site.`
-    : `For ${toTitleCase(college.collegeName)}, look for one concrete detail tied to ${major}.`;
-  const connectionNudge = offerNotes
-    ? "Then take one of the details you listed and connect it to your experience, interests, or goals."
-    : "Start with one specific program, club, lab, class, or resource, then connect it to your background.";
-
-  return `${messageLead} ${activityText} ${connectionNudge} A useful note can be simple: "I have done X, so Y at ${toTitleCase(college.collegeName)} would help me explore Z."`;
+// Flatten the brainstorm bullets into text the helper can react to.
+function buildSectionsSummary(sections: CollegeResearchSections) {
+  const parts: string[] = [];
+  for (const field of brainstormFields) {
+    const value = sections[field.key]?.trim();
+    if (value) parts.push(`${field.label}: ${value}`);
+  }
+  const synthesis = sections.synthesis?.trim();
+  if (synthesis) parts.push(`Draft synthesis: ${synthesis}`);
+  return parts.join("\n");
 }
 
 export function CollegeResearchWorkspace({
@@ -161,20 +162,26 @@ export function CollegeResearchWorkspace({
       : [
           makeMessage(
             "assistant",
-            `Start by collecting a few specific things ${toTitleCase(college.collegeName)} offers: programs, classes, labs, clubs, institutes, or campus resources. Then I can help connect them to your background.`
+            `I can look up ${toTitleCase(college.collegeName)}'s programs, professors, labs, clubs, and resources and connect them to your activities and goals, with sources you can check. Ask me something, or just hit Send and I'll suggest a few specific matches.`
           ),
         ]
   );
   const [studentMessage, setStudentMessage] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isHelperThinking, setIsHelperThinking] = useState(false);
+  const [helperError, setHelperError] = useState("");
+  const [streamingText, setStreamingText] = useState("");
+  const [streamingStatus, setStreamingStatus] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [chatMessages]);
+    // Scroll only the chat log itself to the bottom, without moving the page.
+    const container = chatScrollRef.current;
+    if (container) container.scrollTop = container.scrollHeight;
+  }, [chatMessages, isHelperThinking, streamingText, streamingStatus]);
 
   const location = useMemo(
     () =>
@@ -220,21 +227,112 @@ export function CollegeResearchWorkspace({
     });
   };
 
-  const askHelper = (event?: FormEvent<HTMLFormElement>) => {
+  const askHelper = async (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
-    const trimmedMessage = studentMessage.trim();
-    const nextMessages = trimmedMessage
-      ? [...chatMessages, makeMessage("student", trimmedMessage)]
-      : chatMessages;
-    const reply = buildAssistantReply({
-      college,
-      profile,
-      sections,
-      studentMessage: trimmedMessage,
-    });
+    if (isHelperThinking) return;
 
-    setChatMessages([...nextMessages, makeMessage("assistant", reply)]);
+    const trimmedMessage = studentMessage.trim();
+    const priorMessages = chatMessages;
+    const nextMessages = trimmedMessage
+      ? [...priorMessages, makeMessage("student", trimmedMessage)]
+      : priorMessages;
+
+    setHelperError("");
+    setChatMessages(nextMessages);
     setStudentMessage("");
+    setStreamingText("");
+    setStreamingStatus(`Searching ${toTitleCase(college.collegeName)}'s site...`);
+    setIsHelperThinking(true);
+
+    try {
+      const response = await fetch("/api/college-research-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          collegeName: toTitleCase(college.collegeName),
+          website: college.website,
+          location,
+          intendedMajor: major,
+          profileSummary: buildProfileSummary(profile),
+          sections: buildSectionsSummary(sections),
+          studentMessage: trimmedMessage,
+          // Only the visible transcript, not the newly added student turn (sent
+          // separately as studentMessage) and not any pending state.
+          history: priorMessages.map((message) => ({
+            role: message.role,
+            content: message.content,
+          })),
+        }),
+      });
+
+      // Non-streaming responses (quota / auth / setup errors) come back as JSON.
+      if (!response.ok || !response.body) {
+        const data = (await response.json().catch(() => null)) as
+          | { error?: string; message?: string }
+          | null;
+        setHelperError(
+          data?.message ?? data?.error ?? "The research helper could not respond. Please try again."
+        );
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let answer = "";
+      let sources: CollegeResearchSource[] | undefined;
+      let streamError = "";
+
+      // Read the newline-delimited JSON event stream.
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let event: {
+            type?: string;
+            text?: string;
+            sources?: CollegeResearchSource[];
+            message?: string;
+          };
+          try {
+            event = JSON.parse(line);
+          } catch {
+            continue;
+          }
+          if (event.type === "status" && event.text) {
+            setStreamingStatus(event.text);
+          } else if (event.type === "delta" && event.text) {
+            answer += event.text;
+            setStreamingText(answer);
+          } else if (event.type === "sources" && event.sources) {
+            sources = event.sources;
+          } else if (event.type === "error" && event.message) {
+            streamError = event.message;
+          }
+        }
+      }
+
+      if (streamError && !answer) {
+        setHelperError(streamError);
+        return;
+      }
+
+      if (answer) {
+        setChatMessages((current) => [...current, makeMessage("assistant", answer, sources)]);
+      } else {
+        setHelperError("The research helper could not respond. Please try again.");
+      }
+    } catch {
+      setHelperError("Could not reach the research helper. Check your connection and try again.");
+    } finally {
+      setIsHelperThinking(false);
+      setStreamingText("");
+      setStreamingStatus("");
+    }
   };
 
   if (!document) {
@@ -305,10 +403,9 @@ export function CollegeResearchWorkspace({
         </div>
       </header>
 
-      {/* Brainstorming (bullet sections + advice) alongside the research helper */}
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
-        <div className="min-w-0 rounded-2xl border border-border-soft bg-white p-4 sm:p-5">
-          <h2 className="text-lg font-semibold tracking-tight">Brainstorm</h2>
+      {/* Brainstorming (bullet sections + advice) */}
+      <div className="rounded-2xl border border-border-soft bg-white p-4 sm:p-5">
+        <h2 className="text-lg font-semibold tracking-tight">Brainstorm</h2>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {brainstormFields.map((field) => (
@@ -337,10 +434,13 @@ export function CollegeResearchWorkspace({
           </div>
         </div>
 
-        {/* Research helper */}
-        <aside className="flex max-h-[36rem] flex-col rounded-2xl border border-border-soft bg-white p-4 sm:p-5">
-          <h3 className="text-lg font-semibold">Research Helper</h3>
-          <div className="mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
+      {/* Research helper — full width, below the brainstorm */}
+      <section className="flex max-h-[36rem] flex-col rounded-2xl border border-border-soft bg-white p-4 sm:p-5">
+        <h3 className="text-lg font-semibold">Research Helper</h3>
+          <p className="mt-1 text-xs text-text-secondary">
+            Looks up {toTitleCase(college.collegeName)}&apos;s site to find real matches for your background, with sources.
+          </p>
+          <div ref={chatScrollRef} className="mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
             {chatMessages.map((message) => (
               <div
                 key={message.id}
@@ -348,27 +448,62 @@ export function CollegeResearchWorkspace({
                   message.role === "assistant" ? "bg-ivory text-foreground" : "bg-forest text-white"
                 }`}
               >
-                {message.content}
+                <p className="whitespace-pre-wrap">{message.content}</p>
+                {message.sources && message.sources.length > 0 && (
+                  <div className="mt-2 border-t border-border-soft pt-2">
+                    <p className="text-xs font-semibold text-text-secondary">Sources</p>
+                    <ul className="mt-1 space-y-1">
+                      {message.sources.map((source) => (
+                        <li key={source.url}>
+                          <a
+                            href={source.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-forest underline underline-offset-2 hover:text-forest-light break-words"
+                          >
+                            {source.title}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             ))}
-            <div ref={chatEndRef} />
+            {isHelperThinking && (
+              <div className="rounded-xl bg-ivory px-3 py-2 text-sm leading-5 text-foreground">
+                {streamingText ? (
+                  <p className="whitespace-pre-wrap">{streamingText}</p>
+                ) : (
+                  <p className="text-text-secondary">{streamingStatus || "Thinking..."}</p>
+                )}
+              </div>
+            )}
           </div>
-          <form onSubmit={askHelper} className="mt-4 space-y-2">
+          {helperError && <p className="mt-2 text-sm text-red-700">{helperError}</p>}
+          <form onSubmit={askHelper} className="mt-4 flex items-stretch gap-2">
             <textarea
               value={studentMessage}
               onChange={(event) => setStudentMessage(event.target.value)}
+              onKeyDown={(event) => {
+                // Enter sends; Shift+Enter inserts a newline.
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  askHelper();
+                }
+              }}
               placeholder="Ask for a more targeted question, or paste a college detail you found..."
-              className="min-h-24 w-full resize-y rounded-xl border border-border-soft bg-ivory/60 p-3 text-sm leading-5 outline-none transition-colors placeholder:text-text-tertiary focus:border-forest focus:bg-white"
+              className="min-h-24 flex-1 resize-y rounded-xl border border-border-soft bg-ivory/60 p-3 text-sm leading-5 outline-none transition-colors placeholder:text-text-tertiary focus:border-forest focus:bg-white"
             />
             <button
               type="submit"
-              className="w-full rounded-full bg-forest px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-forest-light"
+              disabled={isHelperThinking}
+              className="shrink-0 self-end rounded-full bg-forest px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-forest-light disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Send to Helper
+              {isHelperThinking ? "Searching..." : "Send"}
             </button>
           </form>
-        </aside>
-      </div>
+      </section>
 
       {/* Synthesis — larger box to put everything together, with the save action */}
       <div className="rounded-2xl border border-border-soft bg-white p-4 sm:p-5">

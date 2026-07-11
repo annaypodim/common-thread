@@ -14,11 +14,17 @@ export type CollegeResearchSectionKey = (typeof collegeResearchSectionKeys)[numb
 
 export type CollegeResearchSections = Record<CollegeResearchSectionKey, string>;
 
+export type CollegeResearchSource = {
+  title: string;
+  url: string;
+};
+
 export type CollegeResearchChatMessage = {
   id: string;
   role: "assistant" | "student";
   content: string;
   createdAt: string;
+  sources?: CollegeResearchSource[];
 };
 
 export type CollegeResearchDocument = {
@@ -80,7 +86,29 @@ function normalizeChatMessages(value: unknown): CollegeResearchChatMessage[] {
       return [];
     }
 
-    return [rawMessage as CollegeResearchChatMessage];
+    const sources = Array.isArray(rawMessage.sources)
+      ? rawMessage.sources.flatMap((source) => {
+          if (!source || typeof source !== "object") return [];
+          const rawSource = source as Partial<CollegeResearchSource>;
+          if (typeof rawSource.url !== "string" || !rawSource.url) return [];
+          return [
+            {
+              url: rawSource.url,
+              title: typeof rawSource.title === "string" && rawSource.title ? rawSource.title : rawSource.url,
+            },
+          ];
+        })
+      : undefined;
+
+    return [
+      {
+        id: rawMessage.id,
+        role: rawMessage.role,
+        content: rawMessage.content,
+        createdAt: rawMessage.createdAt,
+        ...(sources && sources.length ? { sources } : {}),
+      },
+    ];
   });
 }
 

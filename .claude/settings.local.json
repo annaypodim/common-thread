@@ -43,7 +43,11 @@
       "Bash(gh pr *)",
       "Bash(git fetch *)",
       "Bash(git pull *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Skill(claude-api)",
+      "Bash(lsof -ti:3005)",
+      "Bash(xargs kill -9)",
+      "Bash(PORT=3005 npm run *)"
     ]
   }
 }
