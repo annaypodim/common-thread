@@ -57,6 +57,15 @@ function toTitleCase(str: string) {
   return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+type QueuedCollege = {
+  college: CollegeRecord;
+  major: string;
+};
+
+function collegeKey(college: CollegeRecord) {
+  return `${college.name}-${college.state}-${college.city}`;
+}
+
 export function DashboardCollegeManager({
   initialCollegeSuggestions,
   initialSavedColleges,
@@ -79,8 +88,7 @@ export function DashboardCollegeManager({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState(initialCollegeSuggestions);
-  const [selectedCollege, setSelectedCollege] = useState<CollegeRecord | null>(null);
-  const [intendedMajor, setIntendedMajor] = useState(defaultIntendedMajor);
+  const [queuedColleges, setQueuedColleges] = useState<QueuedCollege[]>([]);
   const [toastMessage, setToastMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -126,50 +134,103 @@ export function DashboardCollegeManager({
     };
   }, [isModalOpen, query, searchCollegeOptions]);
 
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setQuery("");
+    setQueuedColleges([]);
+    setErrorMessage("");
+  };
+
+  const toggleQueuedCollege = (college: CollegeRecord) => {
+    setErrorMessage("");
+    setQueuedColleges((current) => {
+      if (current.some((queued) => collegeKey(queued.college) === collegeKey(college))) {
+        return current.filter((queued) => collegeKey(queued.college) !== collegeKey(college));
+      }
+
+      return [...current, { college, major: defaultIntendedMajor }];
+    });
+  };
+
+  const updateQueuedMajor = (college: CollegeRecord, major: string) => {
+    setQueuedColleges((current) =>
+      current.map((queued) =>
+        collegeKey(queued.college) === collegeKey(college) ? { ...queued, major } : queued
+      )
+    );
+  };
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const resolvedCollege = selectedCollege;
-
-    if (!resolvedCollege) {
-      setErrorMessage("No matching college found. Try a more specific search.");
+    if (queuedColleges.length === 0) {
+      setErrorMessage("Search and click at least one college to add.");
       return;
     }
 
-    const formData = new FormData(event.currentTarget);
-    formData.set("name", resolvedCollege.name);
-    formData.set("address", resolvedCollege.address ?? "");
-    formData.set("city", resolvedCollege.city ?? "");
-    formData.set("state", resolvedCollege.state ?? "");
-    formData.set("zip", resolvedCollege.zip ?? "");
-    formData.set("website", resolvedCollege.website ?? "");
     setErrorMessage("");
 
     startTransition(async () => {
-      const result = await addCollegeAction(formData);
+      const added: SavedCollege[] = [];
+      const succeededKeys = new Set<string>();
+      let failure = "";
 
-      if (result.error) {
-        setErrorMessage(result.error);
-        return;
-      }
+      for (const { college, major } of queuedColleges) {
+        const formData = new FormData();
+        formData.set("name", college.name);
+        formData.set("address", college.address ?? "");
+        formData.set("city", college.city ?? "");
+        formData.set("state", college.state ?? "");
+        formData.set("zip", college.zip ?? "");
+        formData.set("website", college.website ?? "");
+        formData.set("intendedMajor", major);
 
-      if (!result.savedCollege) {
-        return;
-      }
+        const result = await addCollegeAction(formData);
 
-      setSelectedCollege(resolvedCollege);
-      setSavedColleges((current) => {
-        if (current.some((college) => college.id === result.savedCollege?.id)) {
-          return current;
+        if (result.error) {
+          failure = result.error;
+          break;
         }
 
-        return [...current, result.savedCollege!];
-      });
-      setToastMessage(`${result.savedCollege.collegeName} added to your dashboard`);
-      setIsModalOpen(false);
-      setQuery("");
-      setSelectedCollege(null);
-      setIntendedMajor(defaultIntendedMajor);
+        if (result.savedCollege) {
+          added.push(result.savedCollege);
+          succeededKeys.add(collegeKey(college));
+        }
+      }
+
+      if (added.length > 0) {
+        setSavedColleges((current) => {
+          const merged = [...current];
+          for (const savedCollege of added) {
+            if (!merged.some((college) => college.id === savedCollege.id)) {
+              merged.push(savedCollege);
+            }
+          }
+          return merged;
+        });
+      }
+
+      if (failure) {
+        setErrorMessage(failure);
+        setQueuedColleges((current) =>
+          current.filter((queued) => !succeededKeys.has(collegeKey(queued.college)))
+        );
+        if (added.length > 0) {
+          setToastMessage(
+            added.length === 1
+              ? `${added[0].collegeName} added to your dashboard`
+              : `${added.length} colleges added to your dashboard`
+          );
+        }
+        return;
+      }
+
+      setToastMessage(
+        added.length === 1
+          ? `${added[0].collegeName} added to your dashboard`
+          : `${added.length} colleges added to your dashboard`
+      );
+      closeModal();
     });
   };
 
@@ -253,12 +314,12 @@ export function DashboardCollegeManager({
           <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto rounded-3xl border border-border-soft bg-white p-4 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-xl font-semibold text-foreground">Add College</h3>
-                <p className="mt-1 text-sm text-text-secondary">Search the full college list and save a school to your dashboard.</p>
+                <h3 className="text-xl font-semibold text-foreground">Add Colleges</h3>
+                <p className="mt-1 text-sm text-text-secondary">Search and click colleges to queue them, set each intended major, then add them all at once.</p>
               </div>
               <button
                 type="button"
-                onClick={() => setIsModalOpen(false)}
+                onClick={closeModal}
                 className="rounded-full border border-border-soft px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-ivory"
               >
                 Close
@@ -276,7 +337,6 @@ export function DashboardCollegeManager({
                   value={query}
                   onChange={(event) => {
                     setQuery(event.target.value);
-                    setSelectedCollege(null);
                     setErrorMessage("");
                   }}
                   placeholder="Start typing a university or college name"
@@ -302,22 +362,21 @@ export function DashboardCollegeManager({
                   )}
 
                   {suggestions.map((college) => {
-                    const isSelected = selectedCollege?.name === college.name && selectedCollege?.state === college.state;
+                    const isQueued = queuedColleges.some(
+                      (queued) => collegeKey(queued.college) === collegeKey(college)
+                    );
 
                     return (
                       <button
-                        key={`${college.name}-${college.state}-${college.city}`}
+                        key={collegeKey(college)}
                         type="button"
-                        onClick={() => {
-                          setSelectedCollege(college);
-                          setQuery(college.name);
-                        }}
+                        onClick={() => toggleQueuedCollege(college)}
                         className={`w-full rounded-xl px-3 py-3 text-left transition-colors ${
-                          isSelected ? "bg-forest text-white" : "bg-white text-foreground hover:bg-ivory"
+                          isQueued ? "bg-forest text-white" : "bg-white text-foreground hover:bg-ivory"
                         }`}
                       >
                         <p className="text-sm font-medium">{toTitleCase(college.name)}</p>
-                        <p className={`mt-1 text-xs ${isSelected ? "text-white/80" : "text-text-secondary"}`}>
+                        <p className={`mt-1 text-xs ${isQueued ? "text-white/80" : "text-text-secondary"}`}>
                           {college.city}, {college.state}
                         </p>
                       </button>
@@ -326,50 +385,65 @@ export function DashboardCollegeManager({
                 </div>
               </div>
 
-              <div>
-                <label htmlFor="intended-major" className="text-sm font-medium text-foreground">
-                  Intended major
-                </label>
-                <input
-                  id="intended-major"
-                  value={intendedMajor}
-                  onChange={(event) => setIntendedMajor(event.target.value)}
-                  placeholder="Example: Computer Science"
-                  className="mt-2 w-full rounded-2xl border border-border-soft px-4 py-3 text-sm outline-none transition-colors focus:border-forest"
-                />
-              </div>
-
-              {selectedCollege && (
-                <div className="rounded-2xl border border-border-soft bg-ivory/60 px-4 py-3 text-sm text-text-secondary">
-                  <p className="font-medium text-foreground">{toTitleCase(selectedCollege.name)}</p>
-                  <p className="mt-1">{selectedCollege.city}, {selectedCollege.state}</p>
+              {queuedColleges.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">
+                    Colleges to add ({queuedColleges.length})
+                  </p>
+                  {queuedColleges.map(({ college, major }) => (
+                    <div
+                      key={collegeKey(college)}
+                      className="rounded-2xl border border-border-soft bg-ivory/60 p-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground">{toTitleCase(college.name)}</p>
+                          <p className="mt-0.5 text-xs text-text-secondary">
+                            {college.city}, {college.state}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleQueuedCollege(college)}
+                          className="shrink-0 rounded-full border border-border-soft px-2.5 py-1 text-xs text-text-secondary transition-colors hover:bg-white"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <label className="mt-2 block">
+                        <span className="text-xs font-medium text-text-secondary">Intended major</span>
+                        <input
+                          value={major}
+                          onChange={(event) => updateQueuedMajor(college, event.target.value)}
+                          placeholder="Example: Computer Science"
+                          className="mt-1 w-full rounded-xl border border-border-soft bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-forest"
+                        />
+                      </label>
+                    </div>
+                  ))}
                 </div>
               )}
 
               {errorMessage && <p className="text-sm text-red-700">{errorMessage}</p>}
 
-              <input type="hidden" name="name" value={selectedCollege?.name ?? ""} />
-              <input type="hidden" name="address" value={selectedCollege?.address ?? ""} />
-              <input type="hidden" name="city" value={selectedCollege?.city ?? ""} />
-              <input type="hidden" name="state" value={selectedCollege?.state ?? ""} />
-              <input type="hidden" name="zip" value={selectedCollege?.zip ?? ""} />
-              <input type="hidden" name="website" value={selectedCollege?.website ?? ""} />
-              <input type="hidden" name="intendedMajor" value={intendedMajor} />
-
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={closeModal}
                   className="rounded-full border border-border-soft px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-ivory"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={!selectedCollege || isPending}
+                  disabled={queuedColleges.length === 0 || isPending}
                   className="rounded-full bg-forest px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-forest-light disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isPending ? "Adding..." : "Add to Dashboard"}
+                  {isPending
+                    ? "Adding..."
+                    : queuedColleges.length > 1
+                      ? `Add ${queuedColleges.length} to Dashboard`
+                      : "Add to Dashboard"}
                 </button>
               </div>
             </form>
