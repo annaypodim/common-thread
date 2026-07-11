@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { type FormEvent, useEffect, useState, useTransition } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
 import type { CollegeRecord, SavedCollege } from "@/lib/colleges";
 import { slugifyCollege } from "@/lib/college-format";
 import type { AnalyzeResult } from "@/app/api/analyze/route";
@@ -9,11 +15,47 @@ import { DashboardAngleAnalyzer } from "@/components/dashboard-angle-analyzer";
 import { PersonalStatementCard } from "@/components/personal-statement-card";
 import type { PersonalStatementDraft } from "@/lib/personal-statement-types";
 import type { CollegeDeadline } from "@/lib/deadlines";
+import type { CollegeFormStatus } from "@/lib/college-research";
 import {
   UpcomingDeadlines,
   type ActiveApplicationsViewMode,
   type DeadlineSuggestion,
 } from "@/components/upcoming-deadlines";
+
+// Remembers the student's Cards vs Spreadsheet choice across navigation.
+const ACTIVE_APPLICATIONS_VIEW_KEY = "activeApplicationsView";
+// Fired locally when the choice changes so the same-tab store updates
+// immediately (the native `storage` event only fires in *other* tabs).
+const ACTIVE_APPLICATIONS_VIEW_EVENT = "active-applications-view-change";
+
+function subscribeActiveApplicationsView(onChange: () => void) {
+  window.addEventListener(ACTIVE_APPLICATIONS_VIEW_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(ACTIVE_APPLICATIONS_VIEW_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+function getActiveApplicationsView(): ActiveApplicationsViewMode {
+  return window.localStorage.getItem(ACTIVE_APPLICATIONS_VIEW_KEY) === "spreadsheet"
+    ? "spreadsheet"
+    : "cards";
+}
+
+// SSR/first-hydration snapshot — always the default so server and client agree.
+function getActiveApplicationsViewServer(): ActiveApplicationsViewMode {
+  return "cards";
+}
+
+function setActiveApplicationsView(view: ActiveApplicationsViewMode) {
+  try {
+    window.localStorage.setItem(ACTIVE_APPLICATIONS_VIEW_KEY, view);
+  } catch {
+    // Ignore storage failures (private mode, quota) — the choice just won't persist.
+  }
+  window.dispatchEvent(new Event(ACTIVE_APPLICATIONS_VIEW_EVENT));
+}
 
 type AddCollegeActionState = {
   error?: string;
@@ -35,6 +77,7 @@ type DashboardCollegeManagerProps = {
   initialSavedColleges: SavedCollege[];
   initialDeadlines: CollegeDeadline[];
   initialDeadlineSuggestions: Record<string, DeadlineSuggestion[]>;
+  collegeFormStatuses: Record<string, CollegeFormStatus>;
   defaultIntendedMajor: string;
   savedAnalysis: AnalyzeResult | null;
   analysisRunsRemaining: number;
@@ -73,6 +116,7 @@ export function DashboardCollegeManager({
   initialSavedColleges,
   initialDeadlines,
   initialDeadlineSuggestions,
+  collegeFormStatuses,
   defaultIntendedMajor,
   savedAnalysis,
   analysisRunsRemaining,
@@ -91,8 +135,17 @@ export function DashboardCollegeManager({
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState(initialCollegeSuggestions);
   const [queuedColleges, setQueuedColleges] = useState<QueuedCollege[]>([]);
-  const [activeApplicationsView, setActiveApplicationsView] =
-    useState<ActiveApplicationsViewMode>("cards");
+  // Persist the Cards/Spreadsheet choice so navigating into a college's
+  // connection form and back doesn't reset it to the default. Backed by
+  // localStorage via useSyncExternalStore: SSR-safe (server snapshot is the
+  // "cards" default, so no hydration mismatch) and no setState-in-effect.
+  const activeApplicationsView = useSyncExternalStore(
+    subscribeActiveApplicationsView,
+    getActiveApplicationsView,
+    getActiveApplicationsViewServer,
+  );
+
+  const handleActiveApplicationsViewChange = setActiveApplicationsView;
   const [toastMessage, setToastMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -277,7 +330,7 @@ export function DashboardCollegeManager({
                   <button
                     key={view}
                     type="button"
-                    onClick={() => setActiveApplicationsView(view)}
+                    onClick={() => handleActiveApplicationsViewChange(view)}
                     aria-pressed={activeApplicationsView === view}
                     className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
                       activeApplicationsView === view
@@ -303,6 +356,7 @@ export function DashboardCollegeManager({
             className="mt-4 max-h-[22rem] min-h-0 overflow-y-auto pr-1"
             viewMode={activeApplicationsView}
             savedColleges={savedColleges}
+            formStatuses={collegeFormStatuses}
             initialDeadlines={initialDeadlines}
             initialSuggestions={initialDeadlineSuggestions}
             lookupDeadlinesAction={lookupDeadlinesAction}

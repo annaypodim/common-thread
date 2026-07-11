@@ -4,6 +4,7 @@ import { type MouseEvent, useEffect, useRef, useState, useTransition } from "rea
 import { useRouter } from "next/navigation";
 import type { CollegeDeadline } from "@/lib/deadlines";
 import type { SavedCollege } from "@/lib/colleges";
+import type { CollegeFormStatus } from "@/lib/college-research";
 
 export type DeadlineSuggestion = {
   label: string;
@@ -28,7 +29,29 @@ type UpcomingDeadlinesProps = {
   removingCollegeId?: string | null;
   isRemovingCollege?: boolean;
   viewMode?: ActiveApplicationsViewMode;
+  // Connection-form progress per saved-college id. Absent id = not started.
+  formStatuses?: Record<string, CollegeFormStatus>;
   className?: string;
+};
+
+// Label + badge styling for each connection-form status shown in the
+// spreadsheet's Status column.
+const FORM_STATUS_META: Record<
+  CollegeFormStatus,
+  { label: string; className: string }
+> = {
+  not_started: {
+    label: "Not started",
+    className: "bg-ivory text-text-secondary hover:bg-ivory/70",
+  },
+  in_progress: {
+    label: "In progress",
+    className: "bg-amber-100 text-amber-800 hover:bg-amber-200",
+  },
+  done: {
+    label: "Done",
+    className: "bg-sage/20 text-forest hover:bg-sage/30",
+  },
 };
 
 export type ActiveApplicationsViewMode = "cards" | "spreadsheet";
@@ -91,6 +114,7 @@ export function UpcomingDeadlines({
   removingCollegeId = null,
   isRemovingCollege = false,
   viewMode = "cards",
+  formStatuses = {},
   className = "",
 }: UpcomingDeadlinesProps) {
   const router = useRouter();
@@ -265,32 +289,29 @@ export function UpcomingDeadlines({
           </div>
         ) : (
           <div className="min-w-0 overflow-x-auto rounded-xl border border-border-soft bg-white">
-            <table className="min-w-[980px] w-full border-collapse text-left text-sm">
-              <thead className="sticky top-0 z-10 bg-ivory text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">
+            <table className="min-w-[900px] w-full border-collapse text-left text-xs">
+              <thead className="sticky top-0 z-10 bg-ivory text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
                 <tr>
-                  <th scope="col" className="w-28 border-b border-border-soft px-3 py-3">
+                  <th scope="col" className="w-28 border-b border-border-soft px-2.5 py-2">
                     Remove
                   </th>
-                  <th scope="col" className="border-b border-border-soft px-3 py-3">
+                  <th scope="col" className="border-b border-border-soft px-2.5 py-2">
                     University
                   </th>
-                  <th scope="col" className="border-b border-border-soft px-3 py-3">
+                  <th scope="col" className="border-b border-border-soft px-2.5 py-2">
                     Location
                   </th>
-                  <th scope="col" className="border-b border-border-soft px-3 py-3">
+                  <th scope="col" className="border-b border-border-soft px-2.5 py-2">
                     Major
                   </th>
-                  <th scope="col" className="border-b border-border-soft px-3 py-3">
+                  <th scope="col" className="border-b border-border-soft px-2.5 py-2">
                     Application Round
                   </th>
-                  <th scope="col" className="border-b border-border-soft px-3 py-3">
+                  <th scope="col" className="border-b border-border-soft px-2.5 py-2">
                     Application Deadline
                   </th>
-                  <th scope="col" className="border-b border-border-soft px-3 py-3">
+                  <th scope="col" className="border-b border-border-soft px-2.5 py-2">
                     Status
-                  </th>
-                  <th scope="col" className="border-b border-border-soft px-3 py-3">
-                    Source
                   </th>
                 </tr>
               </thead>
@@ -298,20 +319,21 @@ export function UpcomingDeadlines({
                 {savedColleges.map((college) => {
                   const rounds = roundsFor(college);
                   const status = lookupStatus[college.id];
-                  const lookedUp = suggestions[college.id] !== undefined;
                   const selectedRounds = rounds.filter((round) => round.savedId);
                   const primaryRound = selectedRounds[0] ?? rounds[0];
                   const location = [college.city && toTitleCase(college.city), college.state]
                     .filter(Boolean)
                     .join(", ");
                   const href = `/colleges/${slugifyCollege(college.collegeName)}`;
+                  const formStatus = formStatuses[college.id] ?? "not_started";
+                  const formStatusMeta = FORM_STATUS_META[formStatus];
 
                   return (
                     <tr
                       key={college.id}
                       className="border-b border-border-soft/80 last:border-b-0 hover:bg-ivory/45"
                     >
-                      <td className="align-top px-3 py-3">
+                      <td className="align-top px-2.5 py-2">
                         {removeCollegeAction && (
                           <button
                             type="button"
@@ -323,7 +345,7 @@ export function UpcomingDeadlines({
                           </button>
                         )}
                       </td>
-                      <td className="max-w-64 align-top px-3 py-3">
+                      <td className="max-w-64 align-top px-2.5 py-2">
                         <button
                           type="button"
                           onClick={() => router.push(href)}
@@ -332,13 +354,13 @@ export function UpcomingDeadlines({
                           {toTitleCase(college.collegeName)}
                         </button>
                       </td>
-                      <td className="whitespace-nowrap align-top px-3 py-3 text-text-secondary">
+                      <td className="whitespace-nowrap align-top px-2.5 py-2 text-text-secondary">
                         {location || "Location unknown"}
                       </td>
-                      <td className="max-w-56 align-top px-3 py-3 text-text-secondary">
+                      <td className="max-w-56 align-top px-2.5 py-2 text-text-secondary">
                         <span className="line-clamp-2">{college.intendedMajor || "—"}</span>
                       </td>
-                      <td className="min-w-56 align-top px-3 py-3">
+                      <td className="min-w-56 align-top px-2.5 py-2">
                         {rounds.length > 0 ? (
                           <div className="flex flex-wrap gap-1.5">
                             {rounds.map((round) => {
@@ -368,47 +390,35 @@ export function UpcomingDeadlines({
                           </span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap align-top px-3 py-3 font-medium text-foreground">
-                        {primaryRound ? formatDueDate(primaryRound.dueDate) : "—"}
-                      </td>
-                      <td className="whitespace-nowrap align-top px-3 py-3">
+                      <td className="whitespace-nowrap align-top px-2.5 py-2 font-medium text-foreground">
                         {primaryRound ? (
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                              selectedRounds.length > 0
-                                ? "bg-sage/15 text-forest"
-                                : "bg-ivory text-text-secondary"
-                            }`}
-                          >
-                            {countdownLabel(daysUntil(primaryRound.dueDate, now))}
-                          </span>
-                        ) : status === "error" ? (
-                          <button
-                            type="button"
-                            onClick={() => fetchSuggestions(college)}
-                            className="text-xs font-medium text-forest underline underline-offset-2 hover:text-forest-light"
-                          >
-                            Retry lookup
-                          </button>
-                        ) : lookedUp ? (
-                          <span className="text-xs text-text-tertiary">No deadline found</span>
+                          primaryRound.sourceUrl ? (
+                            <a
+                              href={primaryRound.sourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Verify on the official admissions site"
+                              className="text-forest underline underline-offset-2 hover:text-forest-light"
+                            >
+                              {formatDueDate(primaryRound.dueDate)}
+                            </a>
+                          ) : (
+                            formatDueDate(primaryRound.dueDate)
+                          )
                         ) : (
-                          <span className="text-xs text-text-tertiary">Finding deadlines...</span>
+                          "—"
                         )}
                       </td>
-                      <td className="whitespace-nowrap align-top px-3 py-3">
-                        {primaryRound?.sourceUrl ? (
-                          <a
-                            href={primaryRound.sourceUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs font-medium text-forest underline underline-offset-2 hover:text-forest-light"
-                          >
-                            Verify
-                          </a>
-                        ) : (
-                          <span className="text-xs text-text-tertiary">—</span>
-                        )}
+                      <td className="whitespace-nowrap align-top px-2.5 py-2">
+                        {/* Connection-form progress — links to the form itself. */}
+                        <button
+                          type="button"
+                          onClick={() => router.push(href)}
+                          title="Open this college's connection form"
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold underline-offset-2 transition-colors hover:underline ${formStatusMeta.className}`}
+                        >
+                          {formStatusMeta.label}
+                        </button>
                       </td>
                     </tr>
                   );

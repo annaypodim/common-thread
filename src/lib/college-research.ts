@@ -226,3 +226,38 @@ export async function saveCollegeResearchDocument({
 
   return mapResearchDocument(data as ResearchRow);
 }
+
+// The connection-form progress shown on the dashboard, derived from the
+// college_research_document backing each saved college.
+export type CollegeFormStatus = "not_started" | "in_progress" | "done";
+
+// Batch-load the connection-form status for many saved colleges at once so the
+// dashboard doesn't fire one query per college. Colleges with no document row
+// are simply absent from the map (the caller treats absent as "not_started").
+export async function getCollegeFormStatuses(
+  userId: string,
+  userCollegeIds: string[],
+): Promise<Record<string, CollegeFormStatus>> {
+  if (userCollegeIds.length === 0) return {};
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("college_research_documents")
+    .select("user_college_id, status")
+    .eq("user_id", userId)
+    .in("user_college_id", userCollegeIds);
+
+  if (error) {
+    // Table not set up yet: treat every college as not started rather than
+    // breaking the whole dashboard.
+    if (isMissingResearchTable(error.message)) return {};
+    throw new Error(error.message);
+  }
+
+  const statuses: Record<string, CollegeFormStatus> = {};
+  for (const row of (data as { user_college_id: string; status: string | null }[]) ?? []) {
+    statuses[row.user_college_id] =
+      row.status === "complete" ? "done" : "in_progress";
+  }
+  return statuses;
+}

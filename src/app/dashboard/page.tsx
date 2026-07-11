@@ -7,6 +7,7 @@ import { getUserProfileData, hasAnyProfileData } from "@/lib/profile";
 import { getSavedAnalysis } from "@/lib/analysis";
 import { getAnalysisUsage } from "@/lib/usage";
 import { getPersonalStatementDraft } from "@/lib/personal-statement";
+import { getCollegeFormStatuses } from "@/lib/college-research";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { DashboardCollegeManager } from "@/components/dashboard-college-manager";
@@ -34,6 +35,14 @@ export default async function Dashboard() {
     const rounds = cachedByName[cacheKey(c.collegeName)];
     if (rounds) initialDeadlineSuggestions[c.id] = rounds;
   }
+
+  // Connection-form progress per saved college (Not started / In progress /
+  // Done). Server-loaded, so it refreshes whenever the student returns to the
+  // dashboard after working in a college's form.
+  const collegeFormStatuses = await getCollegeFormStatuses(
+    user.id,
+    savedColleges.map((c) => c.id),
+  );
 
   async function searchCollegeOptions(query: string) {
     "use server";
@@ -235,6 +244,7 @@ export default async function Dashboard() {
           initialSavedColleges={savedColleges}
           initialDeadlines={savedDeadlines}
           initialDeadlineSuggestions={initialDeadlineSuggestions}
+          collegeFormStatuses={collegeFormStatuses}
           defaultIntendedMajor={profile.intendedMajors}
           savedAnalysis={savedAnalysis}
           analysisRunsRemaining={analysisUsage.remaining}
