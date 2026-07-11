@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { type MouseEvent, useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { CollegeDeadline } from "@/lib/deadlines";
 import type { SavedCollege } from "@/lib/colleges";
+import type { CollegeFormStatus } from "@/lib/college-research";
 
 export type DeadlineSuggestion = {
   label: string;
@@ -23,8 +25,36 @@ type UpcomingDeadlinesProps = {
   lookupDeadlinesAction: (collegeName: string) => Promise<LookupActionState>;
   saveDeadlineAction: (formData: FormData) => Promise<SaveActionState>;
   removeDeadlineAction: (formData: FormData) => Promise<RemoveActionState>;
+  removeCollegeAction?: (college: SavedCollege) => void;
+  removingCollegeId?: string | null;
+  isRemovingCollege?: boolean;
+  viewMode?: ActiveApplicationsViewMode;
+  // Connection-form progress per saved-college id. Absent id = not started.
+  formStatuses?: Record<string, CollegeFormStatus>;
   className?: string;
 };
+
+// Label + badge styling for each connection-form status shown in the
+// spreadsheet's Status column.
+const FORM_STATUS_META: Record<
+  CollegeFormStatus,
+  { label: string; className: string }
+> = {
+  not_started: {
+    label: "Not started",
+    className: "bg-ivory text-text-secondary hover:bg-ivory/70",
+  },
+  in_progress: {
+    label: "In progress",
+    className: "bg-amber-100 text-amber-800 hover:bg-amber-200",
+  },
+  done: {
+    label: "Done",
+    className: "bg-sage/20 text-forest hover:bg-sage/30",
+  },
+};
+
+export type ActiveApplicationsViewMode = "cards" | "spreadsheet";
 
 // A round shown under a college: a suggested or saved application deadline.
 // `savedId` is set when the student has selected this round (it's persisted).
@@ -69,6 +99,10 @@ function countdownLabel(days: number) {
   return `${days}d left`;
 }
 
+function slugifyCollege(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
 export function UpcomingDeadlines({
   savedColleges,
   initialDeadlines,
@@ -76,8 +110,14 @@ export function UpcomingDeadlines({
   lookupDeadlinesAction,
   saveDeadlineAction,
   removeDeadlineAction,
+  removeCollegeAction,
+  removingCollegeId = null,
+  isRemovingCollege = false,
+  viewMode = "cards",
+  formStatuses = {},
   className = "",
 }: UpcomingDeadlinesProps) {
+  const router = useRouter();
   const [deadlines, setDeadlines] = useState(initialDeadlines);
   // Auto-found rounds per college id (undefined = not looked up yet). Seeded
   // from the server-side cache so already-known colleges don't re-search.
@@ -234,24 +274,169 @@ export function UpcomingDeadlines({
     }
   }
 
+  function stopCardClick(event: MouseEvent<HTMLElement>) {
+    event.stopPropagation();
+  }
+
   const collegesWithoutAny = savedColleges.length === 0;
 
-  return (
-    <article
-      className={`min-w-0 rounded-2xl border border-border-soft bg-white p-4 sm:p-5 ${className}`}
-    >
-      <div>
-        <h3 className="text-lg font-semibold">Upcoming Deadlines</h3>
-        <p className="mt-1 text-sm text-text-secondary">
-          Pick the round you&rsquo;re applying to. Tap again to change your
-          mind.
-        </p>
-      </div>
+  if (viewMode === "spreadsheet") {
+    return (
+      <div className={`min-w-0 ${className}`}>
+        {collegesWithoutAny ? (
+          <div className="rounded-xl border border-dashed border-border-soft bg-ivory/50 p-4 text-sm text-text-secondary">
+            No colleges added yet. Use the Add College button to start building your dashboard.
+          </div>
+        ) : (
+          <div className="min-w-0 overflow-x-auto rounded-xl border border-border-soft bg-white">
+            <table className="min-w-[900px] w-full border-collapse text-left text-xs">
+              <thead className="sticky top-0 z-10 bg-ivory text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                <tr>
+                  <th scope="col" className="w-28 border-b border-border-soft px-2.5 py-2">
+                    Remove
+                  </th>
+                  <th scope="col" className="border-b border-border-soft px-2.5 py-2">
+                    University
+                  </th>
+                  <th scope="col" className="border-b border-border-soft px-2.5 py-2">
+                    Location
+                  </th>
+                  <th scope="col" className="border-b border-border-soft px-2.5 py-2">
+                    Major
+                  </th>
+                  <th scope="col" className="border-b border-border-soft px-2.5 py-2">
+                    Application Round
+                  </th>
+                  <th scope="col" className="border-b border-border-soft px-2.5 py-2">
+                    Application Deadline
+                  </th>
+                  <th scope="col" className="border-b border-border-soft px-2.5 py-2">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {savedColleges.map((college) => {
+                  const rounds = roundsFor(college);
+                  const status = lookupStatus[college.id];
+                  const selectedRounds = rounds.filter((round) => round.savedId);
+                  const primaryRound = selectedRounds[0] ?? rounds[0];
+                  const location = [college.city && toTitleCase(college.city), college.state]
+                    .filter(Boolean)
+                    .join(", ");
+                  const href = `/colleges/${slugifyCollege(college.collegeName)}`;
+                  const formStatus = formStatuses[college.id] ?? "not_started";
+                  const formStatusMeta = FORM_STATUS_META[formStatus];
 
-      <div className="mt-4 space-y-4">
+                  return (
+                    <tr
+                      key={college.id}
+                      className="border-b border-border-soft/80 last:border-b-0 hover:bg-ivory/45"
+                    >
+                      <td className="align-top px-2.5 py-2">
+                        {removeCollegeAction && (
+                          <button
+                            type="button"
+                            onClick={() => removeCollegeAction(college)}
+                            disabled={isRemovingCollege && removingCollegeId === college.id}
+                            className="rounded-full border border-border-soft bg-white px-3 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-ivory disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {isRemovingCollege && removingCollegeId === college.id ? "Removing..." : "Remove"}
+                          </button>
+                        )}
+                      </td>
+                      <td className="max-w-64 align-top px-2.5 py-2">
+                        <button
+                          type="button"
+                          onClick={() => router.push(href)}
+                          className="break-words text-left font-semibold text-foreground hover:text-forest"
+                        >
+                          {toTitleCase(college.collegeName)}
+                        </button>
+                      </td>
+                      <td className="whitespace-nowrap align-top px-2.5 py-2 text-text-secondary">
+                        {location || "Location unknown"}
+                      </td>
+                      <td className="max-w-56 align-top px-2.5 py-2 text-text-secondary">
+                        <span className="line-clamp-2">{college.intendedMajor || "—"}</span>
+                      </td>
+                      <td className="min-w-56 align-top px-2.5 py-2">
+                        {rounds.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {rounds.map((round) => {
+                              const key = `${college.id}|${round.label}|${round.dueDate}`;
+                              const selected = round.savedId !== null;
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => toggleRound(college, round)}
+                                  disabled={busyKey === key}
+                                  title={selected ? "Selected - tap to remove" : "Tap to select this round"}
+                                  className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
+                                    selected
+                                      ? "border-forest bg-forest text-white hover:bg-forest-light"
+                                      : "border-border-soft bg-white text-text-secondary hover:border-forest hover:text-forest"
+                                  }`}
+                                >
+                                  {selected ? round.label : `+ ${round.label}`}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-text-tertiary">
+                            {status === "loading" ? "Finding rounds..." : "No rounds selected"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap align-top px-2.5 py-2 font-medium text-foreground">
+                        {primaryRound ? (
+                          primaryRound.sourceUrl ? (
+                            <a
+                              href={primaryRound.sourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Verify on the official admissions site"
+                              className="text-forest underline underline-offset-2 hover:text-forest-light"
+                            >
+                              {formatDueDate(primaryRound.dueDate)}
+                            </a>
+                          ) : (
+                            formatDueDate(primaryRound.dueDate)
+                          )
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap align-top px-2.5 py-2">
+                        {/* Connection-form progress — links to the form itself. */}
+                        <button
+                          type="button"
+                          onClick={() => router.push(href)}
+                          title="Open this college's connection form"
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold underline-offset-2 transition-colors hover:underline ${formStatusMeta.className}`}
+                        >
+                          {formStatusMeta.label}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3 ${className}`}>
         {collegesWithoutAny && (
-          <div className="rounded-xl border border-dashed border-border-soft bg-ivory/50 p-3 text-sm text-text-secondary">
-            Add a college and its deadlines will show up here automatically.
+          <div className="rounded-xl border border-dashed border-border-soft bg-ivory/50 p-4 text-sm text-text-secondary md:col-span-2 xl:col-span-3">
+            No colleges added yet. Use the Add College button to start building your dashboard.
           </div>
         )}
 
@@ -272,32 +457,76 @@ export function UpcomingDeadlines({
           const canToggleOthers = hasSelection && (!lookedUp || otherCount > 0);
 
           const collapsedDecided = hasSelection && !isExpanded;
+          const location = [college.city && toTitleCase(college.city), college.state]
+            .filter(Boolean)
+            .join(", ");
+          const href = `/colleges/${slugifyCollege(college.collegeName)}`;
 
           return (
-            <div
+            <article
               key={college.id}
-              className="border-b border-border-soft pb-4 last:border-b-0 last:pb-0"
+              role="link"
+              tabIndex={0}
+              onClick={() => router.push(href)}
+              onKeyDown={(event) => {
+                if (event.target !== event.currentTarget) {
+                  return;
+                }
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  router.push(href);
+                }
+              }}
+              className="flex min-w-0 cursor-pointer flex-col rounded-xl border border-border-soft bg-ivory/60 p-4 transition-colors hover:border-forest/40 hover:bg-ivory"
             >
-              {/* Header: college name, plus the chosen round(s) when collapsed */}
-              <div className="flex items-center justify-between gap-2">
-                <p className="min-w-0 truncate text-sm font-semibold text-foreground">
-                  {toTitleCase(college.collegeName)}
-                  {collapsedDecided &&
-                    visibleRounds.map((r) => (
-                      <span
-                        key={r.label}
-                        className="ml-2 rounded-full bg-sage/15 px-2 py-0.5 text-xs font-medium text-forest"
-                      >
-                        {r.label}
-                      </span>
-                    ))}
-                </p>
-                {status === "loading" && (
-                  <span className="shrink-0 text-xs text-text-tertiary">
-                    Finding deadlines…
-                  </span>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="min-w-0 break-words text-base font-semibold text-foreground">
+                    {toTitleCase(college.collegeName)}
+                  </p>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    {location || "Location unknown"}
+                  </p>
+                </div>
+                {removeCollegeAction && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      stopCardClick(event);
+                      removeCollegeAction(college);
+                    }}
+                    disabled={isRemovingCollege && removingCollegeId === college.id}
+                    className="shrink-0 rounded-full border border-border-soft bg-white/70 px-3 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isRemovingCollege && removingCollegeId === college.id ? "Removing..." : "Remove"}
+                  </button>
                 )}
               </div>
+
+              <p className="mt-3 text-sm text-text-secondary">
+                Major <span className="text-foreground">{college.intendedMajor || "—"}</span>
+              </p>
+
+              <div className="mt-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="min-w-0 truncate text-sm font-semibold text-foreground">
+                    Application deadline
+                    {collapsedDecided &&
+                      visibleRounds.map((r) => (
+                        <span
+                          key={r.label}
+                          className="ml-2 rounded-full bg-sage/15 px-2 py-0.5 text-xs font-medium text-forest"
+                        >
+                          {r.label}
+                        </span>
+                      ))}
+                </p>
+                  {status === "loading" && (
+                    <span className="shrink-0 text-xs text-text-tertiary">
+                      Finding deadlines…
+                    </span>
+                  )}
+                </div>
 
               {collapsedDecided ? (
                 /* Decided + collapsed: lead with the bold date */
@@ -317,6 +546,7 @@ export function UpcomingDeadlines({
                               target="_blank"
                               rel="noopener noreferrer"
                               title="Verify on the official admissions site"
+                              onClick={stopCardClick}
                               className="text-sm font-normal text-white/70 hover:text-white"
                             >
                               ↗
@@ -342,7 +572,10 @@ export function UpcomingDeadlines({
                         <div key={key} className="flex min-w-0 w-full items-center sm:inline-flex sm:w-auto">
                           <button
                             type="button"
-                            onClick={() => toggleRound(college, round)}
+                            onClick={(event) => {
+                              stopCardClick(event);
+                              toggleRound(college, round);
+                            }}
                             disabled={busyKey === key}
                             title={
                               selected
@@ -382,6 +615,7 @@ export function UpcomingDeadlines({
                               target="_blank"
                               rel="noopener noreferrer"
                               title="Verify on the official admissions site"
+                              onClick={stopCardClick}
                               className="ml-1 text-xs text-text-tertiary hover:text-forest"
                             >
                               ↗
@@ -398,7 +632,10 @@ export function UpcomingDeadlines({
               {canToggleOthers && (
                 <button
                   type="button"
-                  onClick={() => toggleExpand(college)}
+                  onClick={(event) => {
+                    stopCardClick(event);
+                    toggleExpand(college);
+                  }}
                   className="mt-2 text-xs font-medium text-forest underline underline-offset-2 hover:text-forest-light"
                 >
                   {isExpanded ? "Hide other rounds ▴" : "Show other rounds ▾"}
@@ -424,19 +661,22 @@ export function UpcomingDeadlines({
                       : "No deadlines found automatically."}{" "}
                     <button
                       type="button"
-                      onClick={() => fetchSuggestions(college)}
+                      onClick={(event) => {
+                        stopCardClick(event);
+                        fetchSuggestions(college);
+                      }}
                       className="font-medium text-forest underline underline-offset-2 hover:text-forest-light"
                     >
                       Retry
                     </button>
                   </p>
                 )}
-            </div>
+              </div>
+            </article>
           );
         })}
-      </div>
 
-      {error && <p className="mt-3 text-xs text-red-700">{error}</p>}
-    </article>
+      {error && <p className="text-xs text-red-700 md:col-span-2 xl:col-span-3">{error}</p>}
+    </div>
   );
 }
