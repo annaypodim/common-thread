@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 /** Max Angle Analyzer runs a user gets per calendar month. */
 export const MAX_ANALYSIS_RUNS = 4;
 
+/** Max College Research Helper messages a user gets per calendar month. */
+export const MAX_RESEARCH_CHAT_MESSAGES = 30;
+
 export type AnalysisUsage = {
   used: number;
   remaining: number;
