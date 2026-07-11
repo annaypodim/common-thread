@@ -479,10 +479,11 @@ export function CollegeResearchWorkspace({
           </div>
         </div>
 
-      {/* Research helper — full width, below the brainstorm */}
-      <section className="flex max-h-[36rem] flex-col rounded-2xl border border-border-soft bg-white p-4 sm:p-5">
+      {/* Research helper — full width, below the brainstorm. Dark forest green so
+          it pops against the white page, like the dashboard angle analyzer. */}
+      <section className="flex max-h-[36rem] flex-col rounded-2xl bg-forest p-4 text-white sm:p-5">
         <h3 className="text-lg font-semibold">Research Helper</h3>
-          <p className="mt-1 text-xs text-text-secondary">
+          <p className="mt-1 text-xs text-white/70">
             Looks up {toTitleCase(college.collegeName)}&apos;s site to find real matches for your background, with sources.
           </p>
           <div ref={chatScrollRef} className="mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
@@ -490,13 +491,13 @@ export function CollegeResearchWorkspace({
               <div
                 key={message.id}
                 className={`rounded-xl px-3 py-2 text-sm leading-5 ${
-                  message.role === "assistant" ? "bg-ivory text-foreground" : "bg-forest text-white"
+                  message.role === "assistant" ? "bg-white/10 text-white" : "bg-white text-foreground"
                 }`}
               >
                 <p className="whitespace-pre-wrap">{message.content}</p>
                 {message.sources && message.sources.length > 0 && (
-                  <div className="mt-2 border-t border-border-soft pt-2">
-                    <p className="text-xs font-semibold text-text-secondary">Sources</p>
+                  <div className="mt-2 border-t border-white/20 pt-2">
+                    <p className="text-xs font-semibold text-white/70">Sources</p>
                     <ul className="mt-1 space-y-1">
                       {message.sources.map((source) => (
                         <li key={source.url}>
@@ -504,7 +505,7 @@ export function CollegeResearchWorkspace({
                             href={source.url}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-xs text-forest underline underline-offset-2 hover:text-forest-light break-words"
+                            className="text-xs text-white underline underline-offset-2 hover:text-white/80 break-words"
                           >
                             {source.title}
                           </a>
@@ -516,16 +517,16 @@ export function CollegeResearchWorkspace({
               </div>
             ))}
             {isHelperThinking && (
-              <div className="rounded-xl bg-ivory px-3 py-2 text-sm leading-5 text-foreground">
+              <div className="rounded-xl bg-white/10 px-3 py-2 text-sm leading-5 text-white">
                 {streamingText ? (
                   <p className="whitespace-pre-wrap">{streamingText}</p>
                 ) : (
-                  <p className="text-text-secondary">{streamingStatus || "Thinking..."}</p>
+                  <p className="text-white/70">{streamingStatus || "Thinking..."}</p>
                 )}
               </div>
             )}
           </div>
-          {helperError && <p className="mt-2 text-sm text-red-700">{helperError}</p>}
+          {helperError && <p className="mt-2 text-sm text-red-200">{helperError}</p>}
           <form onSubmit={askHelper} className="mt-4 flex items-stretch gap-2">
             <textarea
               value={studentMessage}
@@ -538,12 +539,12 @@ export function CollegeResearchWorkspace({
                 }
               }}
               placeholder="Ask for a more targeted question, or paste a college detail you found..."
-              className="min-h-24 flex-1 resize-y rounded-xl border border-border-soft bg-ivory/60 p-3 text-sm leading-5 outline-none transition-colors placeholder:text-text-tertiary focus:border-forest focus:bg-white"
+              className="min-h-24 flex-1 resize-y rounded-xl border border-white/20 bg-white/10 p-3 text-sm leading-5 text-white outline-none transition-colors placeholder:text-white/50 focus:border-white/40 focus:bg-white/15"
             />
             <button
               type="submit"
               disabled={isHelperThinking}
-              className="shrink-0 self-end rounded-full bg-forest px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-forest-light disabled:cursor-not-allowed disabled:opacity-60"
+              className="shrink-0 self-end rounded-full bg-white px-5 py-2 text-sm font-medium text-forest transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isHelperThinking ? "Searching..." : "Send"}
             </button>
