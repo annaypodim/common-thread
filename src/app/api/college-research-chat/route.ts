@@ -3,12 +3,15 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_RESEARCH_CHAT_MESSAGES } from "@/lib/usage";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// Web search + dynamic filtering. Supported on Sonnet 4.6 (the model this app
-// already uses elsewhere), which keeps the helper consistent with the rest of
-// the codebase while letting Claude actually read the college's site.
+// Web search + dynamic filtering. Keep this aligned with deadline lookup so the
+// deployed build uses the same stable Anthropic server tool version.
 const MODEL = "claude-sonnet-4-6";
+const WEB_SEARCH_TOOL_TYPE = "web_search_20250305";
 const MAX_SEARCHES = 3;
 const MAX_TURN_CONTINUATIONS = 4;
 
@@ -234,7 +237,7 @@ export async function POST(request: Request) {
   const system = buildSystemPrompt(domain);
   const tools: Anthropic.Messages.MessageCreateParams["tools"] = [
     {
-      type: "web_search_20260209",
+      type: WEB_SEARCH_TOOL_TYPE,
       name: "web_search",
       max_uses: MAX_SEARCHES,
       ...(domain ? { allowed_domains: [domain] } : {}),
@@ -310,7 +313,13 @@ export async function POST(request: Request) {
         }
         send({ type: "done" });
       } catch (err) {
-        console.error("College research chat error:", err);
+        console.error("College research chat error:", {
+          error: err,
+          model: MODEL,
+          webSearchToolType: WEB_SEARCH_TOOL_TYPE,
+          collegeName,
+          domain,
+        });
         send({
           type: "error",
           message: "The research helper hit an error. Please try again.",

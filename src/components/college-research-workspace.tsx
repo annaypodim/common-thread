@@ -176,6 +176,16 @@ export function CollegeResearchWorkspace({
   const [isPending, startTransition] = useTransition();
 
   const chatScrollRef = useRef<HTMLDivElement>(null);
+  const sectionsRef = useRef(sections);
+  const chatMessagesRef = useRef(chatMessages);
+
+  useEffect(() => {
+    sectionsRef.current = sections;
+  }, [sections]);
+
+  useEffect(() => {
+    chatMessagesRef.current = chatMessages;
+  }, [chatMessages]);
 
   useEffect(() => {
     // Scroll only the chat log itself to the bottom, without moving the page.
@@ -227,12 +237,33 @@ export function CollegeResearchWorkspace({
     });
   };
 
+  const persistChatMessages = async (nextMessages: CollegeResearchChatMessage[]) => {
+    if (!document) return;
+
+    try {
+      const result = await saveResearchDocumentAction(
+        sectionsRef.current,
+        nextMessages,
+        document.status
+      );
+
+      if (result.error || !result.document) {
+        setHelperError(result.error ?? "The chat was not saved. Please try again.");
+        return;
+      }
+
+      setDocument(result.document);
+    } catch {
+      setHelperError("The chat was not saved. Please try again.");
+    }
+  };
+
   const askHelper = async (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     if (isHelperThinking) return;
 
     const trimmedMessage = studentMessage.trim();
-    const priorMessages = chatMessages;
+    const priorMessages = chatMessagesRef.current;
     const nextMessages = trimmedMessage
       ? [...priorMessages, makeMessage("student", trimmedMessage)]
       : priorMessages;
@@ -273,6 +304,9 @@ export function CollegeResearchWorkspace({
         setHelperError(
           data?.message ?? data?.error ?? "The research helper could not respond. Please try again."
         );
+        if (trimmedMessage) {
+          await persistChatMessages(nextMessages);
+        }
         return;
       }
 
@@ -318,16 +352,27 @@ export function CollegeResearchWorkspace({
 
       if (streamError && !answer) {
         setHelperError(streamError);
+        if (trimmedMessage) {
+          await persistChatMessages(nextMessages);
+        }
         return;
       }
 
       if (answer) {
-        setChatMessages((current) => [...current, makeMessage("assistant", answer, sources)]);
+        const finalMessages = [...nextMessages, makeMessage("assistant", answer, sources)];
+        setChatMessages(finalMessages);
+        await persistChatMessages(finalMessages);
       } else {
         setHelperError("The research helper could not respond. Please try again.");
+        if (trimmedMessage) {
+          await persistChatMessages(nextMessages);
+        }
       }
     } catch {
       setHelperError("Could not reach the research helper. Check your connection and try again.");
+      if (trimmedMessage) {
+        await persistChatMessages(nextMessages);
+      }
     } finally {
       setIsHelperThinking(false);
       setStreamingText("");
