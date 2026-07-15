@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
+import { MAX_RESUME_PARSES } from "@/lib/usage";
 import type { Activity, Honor } from "@/lib/profile";
 
 export const runtime = "nodejs";
@@ -174,6 +175,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
 
+  // Anonymous/guest sessions don't count as "signed in" — block them so they
+  // can't burn tokens (and can't reset their quota by clearing cookies).
+  if (user.is_anonymous) {
+    return NextResponse.json(
+      { error: "not_signed_in", message: "Sign in to import a resume." },
+      { status: 401 }
+    );
+  }
+
   let resumeText = "";
 
   try {
@@ -224,6 +234,38 @@ export async function POST(request: Request) {
   }
 
   resumeText = resumeText.slice(0, MAX_TEXT_CHARS);
+
+  // Reserve one parse for this month before spending any tokens. Atomic in the
+  // DB, so rapid re-submits can't slip past the quota.
+  const { data: parseCount, error: usageError } = await supabase.rpc(
+    "consume_resume_parse",
+    { max_parses: MAX_RESUME_PARSES }
+  );
+
+  if (usageError) {
+    console.error("consume_resume_parse error:", usageError);
+    const notSetUp = /consume_resume_parse|schema cache|function/i.test(
+      usageError.message ?? ""
+    );
+    return NextResponse.json(
+      {
+        error: notSetUp
+          ? "Usage tracking is not set up yet. Run supabase/resume_deadline_rate_limit_schema.sql in Supabase."
+          : "Could not verify your usage. Please try again.",
+      },
+      { status: 500 }
+    );
+  }
+
+  if (parseCount === -1) {
+    return NextResponse.json(
+      {
+        error: "out_of_parses",
+        message: `You've used all ${MAX_RESUME_PARSES} resume imports for this month.`,
+      },
+      { status: 429 }
+    );
+  }
 
   try {
     const response = await anthropic.messages.create({

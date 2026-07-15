@@ -1,9 +1,20 @@
 import { createClient } from "@/lib/supabase/server";
 import { lookupCollegeDeadlines, type DeadlineSuggestion } from "@/lib/deadline-lookup";
+import { MAX_DEADLINE_LOOKUPS } from "@/lib/usage";
 
 // Deadlines for an upcoming cycle are stable, so a shared cache entry stays
 // usable for a while before we re-search.
 const CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+
+/** Thrown when a user has used up their monthly live-lookup quota. */
+export class DeadlineLookupLimitError extends Error {
+  constructor() {
+    super(
+      `You've used all ${MAX_DEADLINE_LOOKUPS} deadline lookups for this month. You can still add deadlines manually.`
+    );
+    this.name = "DeadlineLookupLimitError";
+  }
+}
 
 export function cacheKey(collegeName: string) {
   return collegeName.trim().toLowerCase();
@@ -56,8 +67,29 @@ export async function getCollegeDeadlineSuggestions(
   if (!error && data) {
     const ageMs = Date.now() - new Date(data.fetched_at as string).getTime();
     if (ageMs < CACHE_TTL_MS) {
+      // Cache hit: no web search, so it doesn't count against the user's quota.
       return (data.deadlines as DeadlineSuggestion[]) ?? [];
     }
+  }
+
+  // Cache miss: this triggers a live (paid) web search, so reserve one lookup
+  // for this month first. Atomic in the DB, so it can't be raced past.
+  const { data: lookupCount, error: usageError } = await supabase.rpc(
+    "consume_deadline_lookup",
+    { max_lookups: MAX_DEADLINE_LOOKUPS }
+  );
+
+  if (usageError) {
+    // If usage tracking isn't set up, fail closed rather than let lookups run
+    // uncapped — surfaced to the caller as a generic lookup error.
+    console.error("consume_deadline_lookup error:", usageError);
+    throw new Error(
+      "Usage tracking is not set up. Run supabase/resume_deadline_rate_limit_schema.sql in Supabase."
+    );
+  }
+
+  if (lookupCount === -1) {
+    throw new DeadlineLookupLimitError();
   }
 
   const found = await lookupCollegeDeadlines(collegeName);
