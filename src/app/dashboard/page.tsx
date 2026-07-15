@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { getMissingUserCollegesTableMessage, getUserSavedColleges, searchColleges } from "@/lib/colleges";
 import { getMissingDeadlinesTableMessage, getUserDeadlines } from "@/lib/deadlines";
-import { cacheKey, getCachedDeadlinesByName, getCollegeDeadlineSuggestions } from "@/lib/deadline-cache";
+import { cacheKey, getCachedDeadlinesByName, getCollegeDeadlineSuggestions, DeadlineLookupLimitError } from "@/lib/deadline-cache";
 import type { DeadlineSuggestion } from "@/lib/deadline-lookup";
 import { getUserProfileData, hasAnyProfileData } from "@/lib/profile";
 import { getSavedAnalysis } from "@/lib/analysis";
@@ -132,7 +132,13 @@ export default async function Dashboard() {
   async function lookupDeadlines(collegeName: string) {
     "use server";
 
-    await requireUser();
+    const currentUser = await requireUser();
+
+    // Anonymous/guest sessions can't run this paid lookup (and can't reset
+    // their quota by clearing cookies).
+    if (currentUser.is_anonymous) {
+      return { error: "Sign in to look up deadlines automatically." };
+    }
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return { error: "Deadline lookup is not configured." };
@@ -141,6 +147,9 @@ export default async function Dashboard() {
     try {
       return { deadlines: await getCollegeDeadlineSuggestions(collegeName) };
     } catch (error) {
+      if (error instanceof DeadlineLookupLimitError) {
+        return { error: error.message };
+      }
       console.error("Deadline lookup error:", error);
       return { error: "Could not look up deadlines right now. Try adding one manually." };
     }
