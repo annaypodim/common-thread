@@ -91,6 +91,16 @@ const sections = [
     ],
   },
   {
+    title: "Rate Limits",
+    body: ["Each user is subject to the following usage limits on our AI features:"],
+    items: [
+      "Angle Analyzer: 2 uses",
+      "Resume Reader: 2 uses",
+      "Research Helper chat: 3 uses",
+      "Deadline lookup: 2 uses",
+    ],
+  },
+  {
     title: "Changes to this Policy",
     body: [
       "We may update this Privacy Policy periodically. Continued use of the platform after updates constitutes acceptance of the revised policy.",
